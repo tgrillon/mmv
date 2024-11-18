@@ -11,7 +11,7 @@
 #include <chrono>
 #include <cstdio>
 
-// Data structures 
+//! Data structures 
 #include <string>
 #include <array>
 #include <set>
@@ -19,13 +19,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// ImGUI 
+//! ImGUI 
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
-// GKit 
+//! GKit 
 #include "texture.h"
 #include "glcore.h"
 #include "orbiter.h"
@@ -37,7 +37,8 @@
 #include "files.h"
 #include "uniforms.h"
 
-// Exprtk
+//! Exprtk
 #include "exprtk_wrapper.h"
 
+//! SDL2
 #include <SDL2/SDL.h>

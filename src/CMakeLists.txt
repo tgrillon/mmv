@@ -5,6 +5,7 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${SOURCE_DIR}/App.cpp
                                ${SOURCE_DIR}/Framebuffer.cpp
                                ${SOURCE_DIR}/Viewer.cpp
+                               ${SOURCE_DIR}/ScalarField.cpp
                                ${SOURCE_DIR}/Timer.cpp
                                ${SOURCE_DIR}/vecext.cpp
                                ${SOURCE_DIR}/pch.cpp
@@ -13,9 +14,11 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${INCLUDE_DIR}/App.h
                                ${INCLUDE_DIR}/Framebuffer.h
                                ${INCLUDE_DIR}/Viewer.h
+                               ${INCLUDE_DIR}/ScalarField.h
                                ${INCLUDE_DIR}/Timer.h
                                ${INCLUDE_DIR}/vecext.h
                                ${INCLUDE_DIR}/Utils.h
+                               ${INCLUDE_DIR}/Memory.h
                                ${INCLUDE_DIR}/pch.h
                                )
 

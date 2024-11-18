@@ -1,5 +1,7 @@
 #include "Viewer.h"
 
+#include "Utils.h"
+
 Mesh make_grid(const int n = 10)
 {
     Mesh grid = Mesh(GL_LINES);
@@ -208,6 +210,11 @@ int Viewer::handle_event()
         }
     }
 
+    return 0;
+}
+
+int Viewer::init_demo_scalar_field()
+{
     return 0;
 }
 

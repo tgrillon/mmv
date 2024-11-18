@@ -5,7 +5,7 @@
 #include "App.h"
 #include "Framebuffer.h"
 #include "Timer.h"
-#include "Utils.h"
+#include "ScalarField.h"
 
 class Viewer : public App
 {
@@ -21,10 +21,15 @@ public:
     int quit_imgui() override;
 
 private:
+    int init_demo_scalar_field();
 
     int render_ui();
     int render_demo_buttons();
     int render_any();
+
+    int render_demo_scalar_field();
+    int render_scalar_field_params();
+    int render_scalar_field_stats();
 
     int handle_event();
 
@@ -59,4 +64,6 @@ private:
     //! Demo boolean attributes
     bool m_activate_scalar_field_demo {true}; 
     bool m_activate_height_map_demo {false}; 
+
+    Ref<mmv::SF> m_sf;
 };
