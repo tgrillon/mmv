@@ -9,6 +9,7 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${SOURCE_DIR}/Framebuffer.cpp
                                ${SOURCE_DIR}/Viewer.cpp
                                ${SOURCE_DIR}/HeightField.cpp
+                               ${SOURCE_DIR}/PerlinNoise.cpp
                                ${SOURCE_DIR}/Timer.cpp
                                ${SOURCE_DIR}/vecext.cpp
                                ${SOURCE_DIR}/pch.cpp
@@ -20,6 +21,7 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${INCLUDE_DIR}/Framebuffer.h
                                ${INCLUDE_DIR}/Viewer.h
                                ${INCLUDE_DIR}/HeightField.h
+                               ${INCLUDE_DIR}/PerlinNoise.h
                                ${INCLUDE_DIR}/Timer.h
                                ${INCLUDE_DIR}/vecext.h
                                ${INCLUDE_DIR}/Utils.h

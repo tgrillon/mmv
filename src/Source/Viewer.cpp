@@ -96,6 +96,21 @@ int Viewer::init_imgui()
     return 0;
 }
 
+int Viewer::init_demo_scalar_field()
+{
+    m_sf_nx = m_sf_nz = 128;
+
+    std::vector<float> elevations = mmv::generate_height_map(m_sf_nx, m_sf_nz, 8, 0.035f, 0.05f);
+    m_sf_a = {0.f, 0.f};
+    m_sf_b = {m_sf_nx, m_sf_nz};
+
+    m_sf = mmv::SF::Create(elevations, m_sf_a, m_sf_b, m_sf_nx, m_sf_nz);
+    
+    m_sf->save_as_image("test.png", m_nx, m_nz);
+    m_sf->save_as_txt("test.txt", m_nx, m_nz);
+    return 0;
+}
+
 int Viewer::render()
 {
     if (render_ui() < 0)
@@ -123,8 +138,6 @@ int Viewer::render()
 int Viewer::quit_any()
 {
     m_grid.release();
-
-    delete_exprtk(m_expr_sf);
 
     return 0;
 }
@@ -193,7 +206,6 @@ int Viewer::render_any()
 
 int Viewer::handle_event()
 {
-    utils::info("Camera : ", (m_cs.is_orbiter() ? "ORBITER" : "FREEFLY"));
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
         if (key_state(SDLK_TAB))
@@ -258,25 +270,6 @@ int Viewer::handle_event()
             }
         }
     }
-
-    return 0;
-}
-
-int Viewer::init_demo_scalar_field()
-{
-    m_expr_sf = exprtk_wrapper_init();
-    add_double_variable(m_expr_sf, "x");
-    add_double_variable(m_expr_sf, "y");
-    set_expression_count(m_expr_sf, 2);
-
-    // std::vector<float> heights;
-    // mmv::surface_points(m_resolution, [&](double x_val, double y_val)
-    //                     {
-    //                 set_double_variable_value(m_expr_sf, "x", x_val);
-    //                 set_double_variable_value(m_expr_sf, "y", y_val);
-    //                 return get_evaluated_value(m_expr_sf, 0); });
-
-    // m_sf = mmv::SF::Create(heights, m_sf_a, m_sf_b, m_sf_nx, m_sf_ny);
 
     return 0;
 }

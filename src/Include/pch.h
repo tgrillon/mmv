@@ -10,6 +10,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <fstream>
 
 //! Data structures 
 #include <string>

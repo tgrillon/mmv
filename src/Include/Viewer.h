@@ -6,6 +6,7 @@
 #include "Framebuffer.h"
 #include "Timer.h"
 #include "HeightField.h"
+#include "PerlinNoise.h"
 
 class Viewer : public App
 {
@@ -68,14 +69,12 @@ private:
     //! Scalar field attributes
     Ref<mmv::SF> m_sf;
 
-    exprtkWrapper m_expr_sf;
-
     vec2 m_sf_a, m_sf_b;
 
     Point pmin, pmax;
 
-    int m_sf_nx, m_sf_ny;
-    int m_nx, m_ny;
+    int m_sf_nx{128}, m_sf_nz{128};
+    int m_nx{256}, m_nz{256};
 
     int m_resolution;
 };

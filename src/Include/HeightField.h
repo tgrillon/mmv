@@ -10,18 +10,18 @@ namespace mmv
     {
     public:
         Grid() = default;
-        Grid(const std::vector<float> &elements, const vec2 &a, const vec2 &b, size_t nx, size_t ny);
+        Grid(const std::vector<float> &elements, const vec2 &a, const vec2 &b, int nx, int nz);
         ~Grid() = default;
 
         //! Get the elements with position (i [col], j [row]).
-        float &operator()(size_t i, size_t j);
+        float &operator()(int i, int j);
 
         //! Get the elements with position (i [col], j [row]).
-        float At(size_t i, size_t j) const;
+        float At(int i, int j) const;
 
         //! Getters
-        size_t Nx() const;
-        size_t Ny() const;
+        int Nx() const;
+        int Nz() const;
 
         vec2 A() const;
         vec2 B() const;
@@ -37,32 +37,38 @@ namespace mmv
 
         vec2 m_A{0.f, 0.f}, m_B{10.f, 10.f}; //! Boundaries
 
-        size_t m_Nx{10}, m_Ny{10}; //! Resolution on x & y
+        int m_Nx{10}, m_Nz{10}; //! Resolution on x & y
     };
 
     class ScalarField : public Grid
     {
     public:
         ScalarField();
-        ScalarField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, size_t nx, size_t ny);
+        ScalarField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
         ~ScalarField() = default;
 
-        static Ref<ScalarField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, size_t nx, size_t ny);
+        static Ref<ScalarField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
 
         //! Get the 3D point from the scalar field.
-        Point Point3D(size_t i, size_t j) const;
+        Point Point3D(int i, int j) const;
         
         //! Get height of the point with position (i [col], j [row]).
-        float Height(size_t i, size_t j) const;
+        float Height(int i, int j) const;
 
         //! Get height of a point within the scalar field.
         float Height(const vec2& point) const; 
 
         //! Compute gradient at a point with position (i [col], j [row]).
-        vec2 Gradient(size_t i, size_t j) const;
+        vec2 Gradient(int i, int j) const;
 
         //! Compute laplacian at a point with position (i [col], j [row]).
-        vec2 Laplacian(size_t i, size_t j) const;
+        vec2 Laplacian(int i, int j) const;
+
+        //! Save a scalarfield as a grayscale image. 
+        int save_as_image(const std::string& filename, int nx=-1, int nz=-1);
+        
+        //! Save a scalarfield as a text file containing each point coordinates. 
+        int save_as_txt(const std::string& filename, int nx=-1, int nz=-1);
 
     protected:
         vec2 m_Diag{};
@@ -72,24 +78,16 @@ namespace mmv
     {
     public: 
         HeightField();
-        HeightField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, size_t nx, size_t ny);
+        HeightField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
         ~HeightField()=default;
 
-        static Ref<HeightField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, size_t nx, size_t ny);
+        static Ref<HeightField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
 
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
-        Vector Normal(size_t i, size_t j) const;
+        Vector Normal(int i, int j) const;
         //! Compute the slope at point of coordinates (i [col], j [row]) in the grid. 
-        float Slope(size_t i, size_t j) const;
+        float Slope(int i, int j) const;
 
     } typedef HF;
-
-    //! Save a scalarfield as a grayscale image. 
-    void save_scalar_field(const std::string& filename, const Ref<ScalarField> &sf, size_t nx=-1, size_t ny=-1);
-
-    // Point sin_noise(const Point& p);
-
-    std::vector<float> surface_points(size_t n, const std::function<double(double, double)> &f);
-    
 } // namespace mmv
