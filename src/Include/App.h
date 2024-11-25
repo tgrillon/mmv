@@ -4,6 +4,8 @@
 
 #include "Window.h"
 
+#include "CameraSystem.h"
+
 const int MAX_FRAMES = 6;
 
 class App
@@ -48,7 +50,7 @@ protected:
     Window m_window;
     Context m_context;
 
-    Orbiter m_camera;
+    CameraSystem m_cs;
 
     ImGuiIO io;
 

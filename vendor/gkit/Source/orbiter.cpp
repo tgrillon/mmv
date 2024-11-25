@@ -105,7 +105,7 @@ void Orbiter::frame( const float z, Point& dO, Vector& dx, Vector& dy ) const
     dy= Vector(dO, d2);
 }
 
-Point Orbiter::position( )
+Point Orbiter::position( ) const
 {
     Transform t= view();     // passage monde vers camera
     Transform tinv= t.inverse();            // l'inverse, passage camera vers monde

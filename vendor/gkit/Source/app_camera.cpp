@@ -56,10 +56,10 @@ int AppCamera::prerender( )
     }
     
     // screenshot
-    if(key_state('s'))
+    if(key_state(SDLK_F1))
     {
         static int calls= 1;
-        clear_key_state('s');
+        clear_key_state(SDLK_F1);
         screenshot("app", calls++);
     }
     

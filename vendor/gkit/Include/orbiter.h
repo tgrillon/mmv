@@ -37,6 +37,8 @@ public:
     void translation( const float x, const float y );
     //! rapproche / eloigne la camera du centre.
     void move( const float z );
+
+    inline float fov() const { return m_fov; }
     
     //! renvoie la transformation vue.
     Transform view( ) const;
@@ -81,7 +83,7 @@ public:
     void frame( const float z, Point& dO, Vector& dx, Vector& dy ) const;
 
     //! renvoie la position de la camera dans le repere du monde.
-    Point position( );
+    Point position( ) const;
     
     //! relit la position de l'orbiter depuis un fichier texte. 
     int read_orbiter( const char *filename );

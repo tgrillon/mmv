@@ -5,7 +5,7 @@
 #include "App.h"
 #include "Framebuffer.h"
 #include "Timer.h"
-#include "ScalarField.h"
+#include "HeightField.h"
 
 class Viewer : public App
 {
@@ -65,5 +65,17 @@ private:
     bool m_activate_scalar_field_demo {true}; 
     bool m_activate_height_map_demo {false}; 
 
+    //! Scalar field attributes
     Ref<mmv::SF> m_sf;
+
+    exprtkWrapper m_expr_sf;
+
+    vec2 m_sf_a, m_sf_b;
+
+    Point pmin, pmax;
+
+    int m_sf_nx, m_sf_ny;
+    int m_nx, m_ny;
+
+    int m_resolution;
 };

@@ -7,7 +7,7 @@ App::App(const int width, const int height, const int major, const int minor, co
     m_window = create_window(width, height, major, minor, samples);
     m_context = create_context(m_window);
 
-    m_camera.projection(window_width(), window_height(), 45);
+    m_cs.projection(window_width(), window_height(), 45);
 
     // requetes pour mesurer le temps gpu
     m_frame = 0;
@@ -58,6 +58,7 @@ int App::prerender()
     int mousex, mousey;
     SDL_GetMouseState(&mousex, &mousey);
 
+    float dt = delta_time() * 0.001f;
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
 
@@ -65,17 +66,17 @@ int App::prerender()
     {
         // deplace la camera
         if (mb & SDL_BUTTON(1))
-            m_camera.rotation(mx, my); // tourne autour de l'objet
+            m_cs.rotation(mx, my); // tourne autour de l'objet
         else if (mb & SDL_BUTTON(3))
-            m_camera.translation((float)mx / (float)window_width(), (float)my / (float)window_height()); // deplace le point de rotation
+            m_cs.translation((float)mx / (float)window_width(), (float)my / (float)window_height(), dt); // deplace le point de rotation
         else if (mb & SDL_BUTTON(2))
-            m_camera.move(mx); // approche / eloigne l'objet
+            m_cs.move(mx, dt); // approche / eloigne l'objet
 
         SDL_MouseWheelEvent wheel = wheel_event();
         if (wheel.y != 0)
         {
             clear_wheel_event();
-            m_camera.move(8.f * wheel.y); // approche / eloigne l'objet
+            m_cs.move(8.f * wheel.y, dt); // approche / eloigne l'objet
         }
     }
 
@@ -87,7 +88,7 @@ int App::prerender()
         {
             clear_key_state(SDLK_LCTRL);
             clear_key_state('c');
-            m_camera.write_orbiter(orbiter_filename);
+            m_cs.orbiter().write_orbiter(orbiter_filename);
         }
         // paste / read orbiter
         if (key_state(SDLK_LCTRL) && key_state('o'))
@@ -98,9 +99,9 @@ int App::prerender()
             Orbiter tmp;
             if (tmp.read_orbiter(orbiter_filename) < 0)
                 // ne pas modifer la camera en cas d'erreur de lecture...
-                tmp = m_camera;
+                tmp = m_cs.orbiter();
 
-            m_camera = tmp;
+            m_cs.orbiter() = tmp;
         }
 
         // screenshot
@@ -202,7 +203,7 @@ void App::center_camera(const Mesh &mesh)
 {
     Point pmin, pmax; 
     mesh.bounds(pmin, pmax);
-    m_camera.lookat(pmin, pmax);
+    m_cs.orbiter().lookat(pmin, pmax);
 }
 
 void App::vsync_off()

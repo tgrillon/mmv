@@ -59,6 +59,11 @@ int Viewer::init_any()
 
     m_grid = make_grid();
 
+    m_grid.bounds(pmin, pmax);
+    m_cs.orbiter().lookat(pmin, pmax);
+
+    init_demo_scalar_field();
+
     return 0;
 }
 
@@ -119,6 +124,8 @@ int Viewer::quit_any()
 {
     m_grid.release();
 
+    delete_exprtk(m_expr_sf);
+
     return 0;
 }
 
@@ -134,9 +141,11 @@ int Viewer::quit_imgui()
 
 int Viewer::render_any()
 {
+    handle_event();
+
     Transform model = Identity();
-    Transform view = m_camera.view();
-    Transform projection = m_camera.projection();
+    Transform view = m_cs.view();
+    Transform projection = m_cs.projection();
 
     Transform mvp = projection * view * model;
 
@@ -145,8 +154,6 @@ int Viewer::render_any()
 
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
-
-    handle_event();
 
     if (m_show_faces)
     {
@@ -159,7 +166,7 @@ int Viewer::render_any()
 
     if (m_show_edges)
     {
-        glUseProgram(m_program_edges);  
+        glUseProgram(m_program_edges);
 
         glLineWidth(m_size_edge);
         program_uniform(m_program_edges, "uMvpMatrix", mvp);
@@ -186,6 +193,7 @@ int Viewer::render_any()
 
 int Viewer::handle_event()
 {
+    utils::info("Camera : ", (m_cs.is_orbiter() ? "ORBITER" : "FREEFLY"));
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
         if (key_state(SDLK_TAB))
@@ -208,6 +216,47 @@ int Viewer::handle_event()
             clear_key_state(SDLK_v);
             m_show_points = !m_show_points;
         }
+
+        float dt = delta_time() / 1000.f;
+        if (key_state(SDLK_z))
+        {
+            m_cs.freefly().translation(CameraMovement::FORWARD, dt);
+        }
+
+        if (key_state(SDLK_q))
+        {
+            m_cs.freefly().translation(CameraMovement::LEFT, dt);
+        }
+
+        if (key_state(SDLK_s))
+        {
+            m_cs.freefly().translation(CameraMovement::BACKWARD, dt);
+        }
+
+        if (key_state(SDLK_d))
+        {
+            m_cs.freefly().translation(CameraMovement::RIGHT, dt);
+        }
+
+        if (key_state(SDLK_SPACE))
+        {
+            m_cs.freefly().translation(CameraMovement::UP, dt);
+        }
+
+        if (key_state(SDLK_LSHIFT))
+        {
+            m_cs.freefly().translation(CameraMovement::DOWN, dt);
+        }
+
+        if (key_state(SDLK_x))
+        {
+            clear_key_state(SDLK_x);
+            m_cs.toggle_type();
+            if (m_cs.type() == CameraType::ORBITER)
+            {
+                m_cs.orbiter().lookat(pmin, pmax);
+            }
+        }
     }
 
     return 0;
@@ -215,6 +264,20 @@ int Viewer::handle_event()
 
 int Viewer::init_demo_scalar_field()
 {
+    m_expr_sf = exprtk_wrapper_init();
+    add_double_variable(m_expr_sf, "x");
+    add_double_variable(m_expr_sf, "y");
+    set_expression_count(m_expr_sf, 2);
+
+    // std::vector<float> heights;
+    // mmv::surface_points(m_resolution, [&](double x_val, double y_val)
+    //                     {
+    //                 set_double_variable_value(m_expr_sf, "x", x_val);
+    //                 set_double_variable_value(m_expr_sf, "y", y_val);
+    //                 return get_evaluated_value(m_expr_sf, 0); });
+
+    // m_sf = mmv::SF::Create(heights, m_sf_a, m_sf_b, m_sf_nx, m_sf_ny);
+
     return 0;
 }
 
@@ -230,7 +293,7 @@ int Viewer::render_ui()
 
     ImGui::Begin("Viewport");
 
-    if (ImGui::IsWindowHovered())
+    if (ImGui::IsWindowFocused())
     {
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
@@ -246,13 +309,13 @@ int Viewer::render_ui()
     // we rescale the framebuffer to the actual window size here and reset the glViewport
     m_framebuffer.rescale(window_width, window_height);
     glViewport(0, 0, window_width, window_height);
-    m_camera.projection(window_width, window_height, 45);
+    m_cs.projection(window_width, window_height);
 
     // we get the screen position of the window
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
     ImGui::GetWindowDrawList()->AddImage(
-        (void *)m_framebuffer.texture_id(),
+        (void*)m_framebuffer.texture_id(),
         ImVec2(pos.x, pos.y),
         ImVec2(pos.x + window_width, pos.y + window_height),
         ImVec2(0, 1),
@@ -265,6 +328,19 @@ int Viewer::render_ui()
         ImGui::Begin("Control Panel");
 
         render_demo_buttons();
+
+        if (m_cs.is_freefly())
+        {
+            utils::print("Here!");
+            if (ImGui::CollapsingHeader("Camera"))
+            {
+                ImGui::SliderFloat("Movement speed", &m_cs.freefly().movement_speed(), 1.0f, 50.0f);
+                ImGui::SliderFloat("Rotation speed", &m_cs.freefly().rotation_speed(), 0.1f, 1.0f);
+                ImGui::SliderFloat("FOV", &m_cs.freefly().fov(), 35.0f, 120.0f);
+                ImGui::InputFloat3("Position", &m_cs.freefly().position().x);
+            }
+        }
+
         if (ImGui::CollapsingHeader("Global"))
         {
             ImGui::SliderFloat("Point size", &m_size_point, 1.f, 50.f, "%.2f");
@@ -288,6 +364,7 @@ int Viewer::render_ui()
         ImGui::End();
 
         ImGui::Begin("Statistiques");
+        
         if (ImGui::CollapsingHeader("Performances"))
         {
             auto [cpums, cpuus] = cpu_time();
