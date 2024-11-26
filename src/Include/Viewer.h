@@ -73,8 +73,34 @@ private:
 
     Point pmin, pmax;
 
-    int m_sf_nx{128}, m_sf_nz{128};
-    int m_nx{256}, m_nz{256};
+    int m_sf_dim[2] {128, 128};
+    int m_output_dim[2] {256, 256};
 
-    int m_resolution;
+    int m_noctaves{4};
+    float m_amplitude{0.035f};
+    float m_frequency{0.05f};
+
+    int m_interpolation_func{1};
+
+    GLuint m_vao;
+    
+    enum VBO_TYPE
+    {
+        POSITION = 0,
+        TEXCOORD,
+        NORMAL,
+        COLOR,
+        MATERIAL,
+        TRANSFORM,
+        NB_ELT
+    };
+
+    GLuint m_buffers[NB_ELT];
+
+    GLuint m_program; 
+    GLuint m_texture_noise;
+
+    std::vector<float> m_positions;
+    std::vector<float> m_texcoords;
+    std::vector<float> m_normals;
 };

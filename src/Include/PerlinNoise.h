@@ -7,11 +7,10 @@ namespace mmv
 
     float cosine(float a, float b, float t);
     float smoothstep(float a, float b, float t);
-    float smoothstep(float t);
     float lerp(float a, float b, float t);
 
     //! Computes perlin noise height map
-    std::vector<float> generate_height_map(int w, int h, int n_octaves = 4, float amplitude = 1.f, float frequency = 1.f);
+    std::vector<float> generate_height_map(int w, int h, int n_octaves = 4, float amplitude = 1.f, float frequency = 1.f, unsigned char inter_func = 1);
 
     //! Thanks to https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/creating-simple-2D-noise.html
 

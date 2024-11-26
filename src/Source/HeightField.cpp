@@ -81,6 +81,15 @@ namespace mmv
         return create_ref<SF>(heights, a, b, nx, nz);
     }
 
+    void ScalarField::Elevations(const std::vector<float> &elevations, int nx, int nz)
+    {
+        assert(nx >= 0 && nz >= 0);
+        m_Elements.clear();
+        m_Elements = elevations;
+        m_Nx = nx;
+        m_Nz = nz;
+    }
+
     Point ScalarField::Point3D(int i, int j) const
     {
         return {m_A.x + m_Diag.x * i, m_A.y + m_Diag.y * j, Height(i, j)};
@@ -94,6 +103,14 @@ namespace mmv
         return {(Height(i + 1, j) - Height(i - 1, j)) * 0.5f, (Height(i, j + 1) - Height(i, j - 1)) * 0.5f};
     }
 
+    vec2 ScalarField::Gradient(float x, float z) const
+    {
+        assert(x > 0.f && x < float(m_Nx - 1));
+        assert(z > 0.f && z < float(m_Nz - 1));
+
+        return {(Height(x + 1, z) - Height(x - 1, z)) * 0.5f, (Height(x, z + 1) - Height(x, z - 1)) * 0.5f};
+    }
+
     vec2 ScalarField::Laplacian(int i, int j) const
     {
         assert(i > 0 && i < m_Nx - 1);
@@ -102,10 +119,12 @@ namespace mmv
         return {(Height(i + 1, j) - 2.f * Height(i, j) + Height(i - 1, j)), (Height(i, j + 1) - 2.f * Height(i, j) + Height(i, j - 1)) * 0.5f};
     }
 
-    int ScalarField::save_as_image(const std::string &filename, int nx, int nz)
+    int ScalarField::SaveHeightAsImage(const std::string &filename, int nx, int nz)
     {
         float nxf = float(nx < 0 ? m_Nx : nx);
         float nzf = float(nz < 0 ? m_Nz : nz);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
 
         ImageData image(nx, nz, 3);
 
@@ -123,13 +142,43 @@ namespace mmv
             }
         }
 
-        write_image_data(image, filename.c_str());
+        write_image_data(image, fullpath.c_str());
         utils::status("Image ", filename, " successfully saved in ./data/output");
 
         return 0;
     }
 
-    int ScalarField::save_as_txt(const std::string &filename, int nx, int nz)
+    int ScalarField::SaveGradientAsImage(const std::string &filename, int nx, int nz)
+    {
+        float nxf = float(nx < 0 ? m_Nx : nx);
+        float nzf = float(nz < 0 ? m_Nz : nz);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        ImageData image(nx, nz, 3);
+
+        for (int j = 0; j < nz; ++j)
+        {
+            float njz = j / nzf * m_Nz;
+            for (int i = 0; i < nx; ++i)
+            {
+                float nix = i / nxf * m_Nx;
+                vec2 grad = Gradient(nix, njz);
+                float gx = static_cast<unsigned char>(std::min(0.f, std::max(255.f, grad.x * 255.f)));
+                float gz = static_cast<unsigned char>(std::min(0.f, std::max(255.f, grad.y * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 0] = gx;
+                image.pixels[(j * nx + i) * 3 + 1] = 0;
+                image.pixels[(j * nx + i) * 3 + 2] = gz;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("Image ", filename, " successfully saved in ./data/output");
+
+        return 0;
+    }
+
+    int ScalarField::SaveHeightAsTxt(const std::string &filename, int nx, int nz)
     {
         if (std::string(filename).rfind(".txt") == std::string::npos)
         {
@@ -172,12 +221,12 @@ namespace mmv
         return (*this).At(i, j);
     }
 
-    float ScalarField::Height(const vec2 &point) const
+    float ScalarField::Height(float x, float z) const
     {
-        float fi = (point.x - m_A.x) / m_Diag.x;
+        float fi = (x - m_A.x) / m_Diag.x;
         int i = int(fi);
 
-        float fj = (point.y - m_A.y) / m_Diag.y;
+        float fj = (z - m_A.y) / m_Diag.y;
         int j = int(fj);
 
         float u = fi - i;
@@ -185,6 +234,11 @@ namespace mmv
 
         //! Bilinear Interpolation
         return (1 - u) * (1 - v) * Height(i, j) + (1 - u) * v * Height(i, j + 1) + u * (1 - v) * Height(i + 1, j) + u * v * Height(i + 1, j + 1);
+    }
+
+    float ScalarField::Height(const vec2 &point) const
+    {
+        return Height(point.x, point.y);
     }
 
     HeightField::HeightField() : ScalarField()

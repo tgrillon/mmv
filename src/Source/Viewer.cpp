@@ -40,9 +40,55 @@ Mesh make_grid(const int n = 10)
     return grid;
 }
 
+void load_buffer(int vbo, int location, int size, const std::vector<float> &data)
+{
+    auto byteCount = sizeof(float) * data.size();
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, byteCount, data.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, size * sizeof(float), (const void *)0);
+    glEnableVertexAttribArray(location);
+}
+
+void load_buffer(int vbo, int location, int size, const std::vector<int> &data)
+{
+    auto byteCount = sizeof(int) * data.size();
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, byteCount, data.data(), GL_STATIC_DRAW);
+
+    glVertexAttribIPointer(location, size, GL_INT, size * sizeof(int), (const void *)0);
+    glEnableVertexAttribArray(location);
+}
+
+// Load a VBO for an instance vertex attribute
+template <typename T = float>
+void load_buffer_i(int vbo, int location, int size, const std::vector<T> &data)
+{
+    load_buffer(vbo, location, size, data);
+
+    glVertexAttribDivisor(location, 1);
+}
+
+Mesh read_mesh(const std::string &obj)
+{
+    return read_mesh(obj.c_str());
+}
+
 GLuint read_program(const std::string &filepath)
 {
     return read_program(filepath.c_str());
+}
+
+GLuint read_texture(const std::string &texture)
+{
+    return read_texture(0, texture.c_str());
+}
+
+Image read_image(const std::string &image)
+{
+    return read_image(image.c_str());
 }
 
 Viewer::Viewer() : App(1024, 640), m_framebuffer(window_width(), window_height())
@@ -98,16 +144,63 @@ int Viewer::init_imgui()
 
 int Viewer::init_demo_scalar_field()
 {
-    m_sf_nx = m_sf_nz = 128;
+    //! Generate height map using Perlin noise
+    m_sf_dim[0] = m_sf_dim[1] = 128;
 
-    std::vector<float> elevations = mmv::generate_height_map(m_sf_nx, m_sf_nz, 8, 0.035f, 0.05f);
+    std::vector<float> elevations = mmv::generate_height_map(m_sf_dim[0], m_sf_dim[1], m_noctaves, m_amplitude, m_frequency, (unsigned char)m_interpolation_func);
     m_sf_a = {0.f, 0.f};
-    m_sf_b = {m_sf_nx, m_sf_nz};
+    m_sf_b = {(float)m_sf_dim[0], (float)m_sf_dim[1]};
 
-    m_sf = mmv::SF::Create(elevations, m_sf_a, m_sf_b, m_sf_nx, m_sf_nz);
-    
-    m_sf->save_as_image("test.png", m_nx, m_nz);
-    m_sf->save_as_txt("test.txt", m_nx, m_nz);
+    m_sf = mmv::SF::Create(elevations, m_sf_a, m_sf_b, m_sf_dim[0], m_sf_dim[1]);
+
+    m_sf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
+    m_sf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
+    m_sf->SaveGradientAsImage("gradient.txt", m_output_dim[0], m_output_dim[1]);
+
+    //! Initialize buffers to draw a quad on which will be displayed the generated noise texture
+    m_positions = {
+        0.f, 0.f, 0.f,
+        1.f, 0.f, 0.f,
+        1.f, 1.f, 0.f,
+        0.f, 0.f, 0.f,
+        1.f, 1.f, 0.f,
+        0.f, 1.f, 0.f};
+
+    m_texcoords = {
+        0.f, 0.f,
+        1.f, 0.f,
+        1.f, 1.f,
+        0.f, 0.f,
+        1.f, 1.f,
+        0.f, 1.f};
+
+    m_normals = {
+        0.f, 0.f, -1.f,
+        0.f, 0.f, -1.f,
+        0.f, 0.f, -1.f,
+        0.f, 0.f, -1.f,
+        0.f, 0.f, -1.f,
+        0.f, 0.f, -1.f};
+
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    glGenBuffers(VBO_TYPE::NB_ELT, m_buffers);
+
+    load_buffer(m_buffers[VBO_TYPE::POSITION], VBO_TYPE::POSITION, 3, m_positions);
+    load_buffer(m_buffers[VBO_TYPE::TEXCOORD], VBO_TYPE::TEXCOORD, 2, m_texcoords);
+    load_buffer(m_buffers[VBO_TYPE::NORMAL], VBO_TYPE::NORMAL, 3, m_normals);
+
+    m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
+
+    glBindTexture(GL_TEXTURE_2D, m_texture_noise);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    m_program = read_program(std::string(DATA_DIR) + "/shaders/base_texture.glsl");
+
+    m_cs.orbiter().lookat({0.f, 0.f, 0.f}, {1.f, 1.f, 0.f});
+
     return 0;
 }
 
@@ -160,7 +253,11 @@ int Viewer::render_any()
     Transform view = m_cs.view();
     Transform projection = m_cs.projection();
 
-    Transform mvp = projection * view * model;
+    Transform mv = view * model;
+    Transform mvp = projection * mv;
+
+    Transform normalMatrix = mv.normal();
+    Point light = m_cs.position();
 
     DrawParam param;
     param.model(model).view(view).projection(projection);
@@ -168,6 +265,19 @@ int Viewer::render_any()
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
 
+    glUseProgram(m_program);
+    program_uniform(m_program, "uMvpMatrix", mvp);
+    program_uniform(m_program, "uMvMatrix", mv);
+    program_uniform(m_program, "uNormalMatrix", normalMatrix);
+    program_uniform(m_program, "uLight", view(light));
+
+    program_use_texture(m_program, "uTexture", 0, m_texture_noise);
+
+    assert(m_vao != 0);
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_TRIANGLES, 0, m_positions.size() / 3);
+
+    /*
     if (m_show_faces)
     {
         glEnable(GL_POLYGON_OFFSET_FILL);
@@ -200,7 +310,37 @@ int Viewer::render_any()
 
         glDrawArrays(GL_POINTS, 0, m_grid.vertex_count());
     }
+    */
 
+    return 0;
+}
+
+int Viewer::render_scalar_field_params()
+{
+    if (ImGui::CollapsingHeader("Perlin Noise"))
+    {
+        ImGui::InputInt2("Scalar Field Dim", &m_sf_dim[0]);
+        ImGui::InputInt2("Output Dim", &m_output_dim[0]);
+
+        ImGui::SliderInt("N Octaves", &m_noctaves, 1, 16);
+        ImGui::InputFloat("Amplitude", &m_amplitude);
+        ImGui::InputFloat("Frequency", &m_frequency);
+        ImGui::SliderInt("I Func", &m_interpolation_func, 0, 2);
+
+        if (ImGui::Button("Generate noise") || key_state(SDLK_g))
+        {
+            clear_key_state(SDLK_g);
+            std::vector<float> elevations = mmv::generate_height_map(m_sf_dim[0], m_sf_dim[1], m_noctaves, m_amplitude, m_frequency, (unsigned char)m_interpolation_func);
+
+            m_sf->Elevations(elevations, m_sf_dim[0], m_sf_dim[1]);
+
+            m_sf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
+            m_sf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
+            m_sf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
+
+            m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
+        }
+    }
     return 0;
 }
 
@@ -308,7 +448,7 @@ int Viewer::render_ui()
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
     ImGui::GetWindowDrawList()->AddImage(
-        (void*)m_framebuffer.texture_id(),
+        (void *)m_framebuffer.texture_id(),
         ImVec2(pos.x, pos.y),
         ImVec2(pos.x + window_width, pos.y + window_height),
         ImVec2(0, 1),
@@ -353,11 +493,12 @@ int Viewer::render_ui()
         }
         if (ImGui::CollapsingHeader("Params"))
         {
+            render_scalar_field_params();
         }
         ImGui::End();
 
         ImGui::Begin("Statistiques");
-        
+
         if (ImGui::CollapsingHeader("Performances"))
         {
             auto [cpums, cpuus] = cpu_time();

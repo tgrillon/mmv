@@ -49,6 +49,9 @@ namespace mmv
 
         static Ref<ScalarField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
 
+        //! Modify elevation values 
+        void Elevations(const std::vector<float>& elevations, int nx, int nz);
+
         //! Get the 3D point from the scalar field.
         Point Point3D(int i, int j) const;
         
@@ -56,19 +59,26 @@ namespace mmv
         float Height(int i, int j) const;
 
         //! Get height of a point within the scalar field.
+        float Height(float x, float z) const; 
+
+        //! Get height of a point within the scalar field.
         float Height(const vec2& point) const; 
 
         //! Compute gradient at a point with position (i [col], j [row]).
         vec2 Gradient(int i, int j) const;
 
+        vec2 Gradient(float x, float z) const;
+
         //! Compute laplacian at a point with position (i [col], j [row]).
         vec2 Laplacian(int i, int j) const;
 
-        //! Save a scalarfield as a grayscale image. 
-        int save_as_image(const std::string& filename, int nx=-1, int nz=-1);
+        //! Save the elevations of a scalarfield as a grayscale image. 
+        int SaveHeightAsImage(const std::string& filename, int nx=-1, int nz=-1);
+
+        int SaveGradientAsImage(const std::string& filename, int nx=-1, int nz=-1);
         
-        //! Save a scalarfield as a text file containing each point coordinates. 
-        int save_as_txt(const std::string& filename, int nx=-1, int nz=-1);
+        //! Save the elevations of a scalarfield as a text file containing each point coordinates. 
+        int SaveHeightAsTxt(const std::string& filename, int nx=-1, int nz=-1);
 
     protected:
         vec2 m_Diag{};

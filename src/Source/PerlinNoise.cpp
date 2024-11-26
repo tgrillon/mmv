@@ -15,12 +15,6 @@ namespace mmv
         return lerp(a, b, tRemapSmoothstep);
     }
 
-    float smoothstep(float t)
-    {
-        assert(t >= 0.f && t <= 1.f);
-        return t * t * (3 - 2 * t);
-    }
-
     float cosine(float a, float b, float t)
     {
         assert(t >= 0.f && t <= 1.f);
@@ -28,13 +22,13 @@ namespace mmv
         return lerp(a, b, tRemapCosine);
     }
 
-    std::vector<float> generate_height_map(int w, int h, int n_octaves, float amplitude, float frequency)
+    std::vector<float> generate_height_map(int w, int h, int n_octaves, float amplitude, float frequency, unsigned char inter_func)
     {
         assert(w > 0 && h > 0);
 
         std::vector<float> elevations(w * h, 0.f);
 
-        PNG2D noise(cosine); 
+        PNG2D noise(inter_func == 0 ? lerp : inter_func == 1 ? cosine : smoothstep); 
 
         float maxNoiseVal = 0.f;
         for (int z = 0; z < h; ++z)
