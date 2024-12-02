@@ -56,21 +56,21 @@ namespace mmv
 //! Znoise interface
 namespace znoise
 {
-    std::vector<float> generate_perlin(const std::string &filename, int width, int height);
+    std::vector<float> generate_perlin(const std::string &filename, float scale, int width, int height);
 
-    std::vector<float> generate_perlin_3dslice(const std::string &filename, int width, int height);
+    std::vector<float> generate_perlin_3dslice(const std::string &filename, float scale, int width, int height);
     
-    std::vector<float> generate_perlin_4dslice(const std::string &filename, int width, int height);
+    std::vector<float> generate_perlin_4dslice(const std::string &filename, float scale, int width, int height);
     
-    std::vector<float> generate_simplex(const std::string &filename, int width, int height);
+    std::vector<float> generate_simplex(const std::string &filename, float scale, int width, int height);
     
-    std::vector<float> generate_simplex_3dslice(const std::string &filename, int width, int height);
+    std::vector<float> generate_simplex_3dslice(const std::string &filename, float scale, int width, int height);
     
-    std::vector<float> generate_simplex_4dslice(const std::string &filename, int width, int height);
+    std::vector<float> generate_simplex_4dslice(const std::string &filename, float scale, int width, int height);
     
-    std::vector<float> generate_worley(const std::string &filename, int width, int height, WorleyFunction worleyFunc);
+    std::vector<float> generate_worley(const std::string &filename, float scale, int width, int height, WorleyFunction worleyFunc);
     
-    std::vector<float> generate_hmf(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale);
+    std::vector<float> generate_hmf(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale);
     
-    std::vector<float> generate_fbm(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale);
+    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale);
 } // namespace znoise

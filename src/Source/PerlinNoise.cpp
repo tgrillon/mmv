@@ -124,7 +124,7 @@ namespace mmv
 
 namespace znoise
 {
-    std::vector<float> generate_perlin(const std::string &filename, int width, int height)
+    std::vector<float> generate_perlin(const std::string &filename, float scale, int width, int height)
     {
         Perlin perlin;
         perlin.Shuffle(10);
@@ -141,7 +141,7 @@ namespace znoise
                 float h = perlin.Get({(float)i, (float)r}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[r * width + i] = h;
+                elevations[r * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(r * width + i) * 3 + 0] = value;
                 image.pixels[(r * width + i) * 3 + 1] = value;
@@ -155,7 +155,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_perlin_3dslice(const std::string &filename, int width, int height)
+    std::vector<float> generate_perlin_3dslice(const std::string &filename, float scale, int width, int height)
     {
         Perlin perlin;
         perlin.Shuffle(10);
@@ -172,7 +172,7 @@ namespace znoise
                 float h = perlin.Get({(float)i, (float)r, 0.0f}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[r * width + i] = h;
+                elevations[r * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(r * width + i) * 3 + 0] = value;
                 image.pixels[(r * width + i) * 3 + 1] = value;
@@ -186,7 +186,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_perlin_4dslice(const std::string &filename, int width, int height)
+    std::vector<float> generate_perlin_4dslice(const std::string &filename, float scale, int width, int height)
     {
         Perlin perlin;
         perlin.Shuffle(10);
@@ -203,7 +203,7 @@ namespace znoise
                 float h = perlin.Get({(float)i, (float)r, 0.0f, 1.0f}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[r * width + i] = h;
+                elevations[r * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(r * width + i) * 3 + 0] = value;
                 image.pixels[(r * width + i) * 3 + 1] = value;
@@ -217,7 +217,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_simplex(const std::string &filename, int width, int height)
+    std::vector<float> generate_simplex(const std::string &filename, float scale, int width, int height)
     {
         Simplex simplex;
         simplex.Shuffle(10);
@@ -234,7 +234,7 @@ namespace znoise
                 float h = simplex.Get({(float)i, (float)j}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;
@@ -248,7 +248,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_simplex_3dslice(const std::string &filename, int width, int height)
+    std::vector<float> generate_simplex_3dslice(const std::string &filename, float scale, int width, int height)
     {
         Simplex simplex;
         simplex.Shuffle(10);
@@ -265,7 +265,7 @@ namespace znoise
                 float h = simplex.Get({(float)i, (float)j, 1.0f}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;
@@ -279,7 +279,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_simplex_4dslice(const std::string &filename, int width, int height)
+    std::vector<float> generate_simplex_4dslice(const std::string &filename, float scale, int width, int height)
     {
         Simplex simplex;
         simplex.Shuffle(10);
@@ -296,7 +296,7 @@ namespace znoise
                 float h = simplex.Get({(float)i, (float)j, 1.0f, 2.0f}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;
@@ -310,7 +310,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_worley(const std::string &filename, int width, int height, WorleyFunction worleyFunc)
+    std::vector<float> generate_worley(const std::string &filename, float scale, int width, int height, WorleyFunction worleyFunc)
     {
         Worley worley;
         worley.Shuffle(10);
@@ -327,7 +327,7 @@ namespace znoise
                 float h = worley.Get({(float)i, (float)j}, 0.01f);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;
@@ -341,10 +341,10 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_hmf(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale)
+    std::vector<float> generate_hmf(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale)
     {
         Simplex simplex;
-        simplex.Shuffle(10);
+        simplex.Shuffle(5);
 
         HybridMultiFractal hmf(simplex);
         hmf.SetParameters(hurst, lacunarity, 5.f);
@@ -358,10 +358,10 @@ namespace znoise
         {
             for (int i = 0; i < width; ++i)
             {
-                float h = hmf.Get({(float)i, (float)j}, baseScale);
-                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+                float h = (hmf.Get({(float)i, (float)j}, baseScale) + 1.0f) * 0.5f;
+                auto value = static_cast<unsigned char>(h * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = h * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;
@@ -375,7 +375,7 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_fbm(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale)
+    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale)
     {
         Simplex simplex;
         simplex.Shuffle(10);
@@ -395,7 +395,7 @@ namespace znoise
                 float h = fbm.Get({(float)i, (float)j}, baseScale);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
-                elevations[j * width + i] = h;
+                elevations[j * width + i] = (h + 1.f) * 0.5f * scale;
 
                 image.pixels[(j * width + i) * 3 + 0] = value;
                 image.pixels[(j * width + i) * 3 + 1] = value;

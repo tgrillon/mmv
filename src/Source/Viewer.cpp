@@ -4,23 +4,19 @@
 #include "Buffer.h"
 #include "gkitext.h"
 
-Viewer::Viewer() : App(1024, 640), m_framebuffer(window_width(), window_height()), m_ww(window_width()), m_wh(window_height())
+Viewer::Viewer() : App(1024, 640), m_ImGUIFramebuffer(window_width(), window_height()), m_ww(window_width()), m_wh(window_height())
 {
 }
 
 int Viewer::init_any()
 {
-    m_program_points = read_program(std::string(SHADER_DIR) + "/points.glsl");
-    program_print_errors(m_program_points);
-
-    m_program_edges = read_program(std::string(SHADER_DIR) + "/edges.glsl");
-    program_print_errors(m_program_edges);
-
-    m_program_skybox = read_program(std::string(SHADER_DIR) + "/cubemap.glsl");
+    init_shaders();
 
     init_demo_scalar_field();
 
-    m_texture_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox2.jpg", GL_RGBA);
+    glGenVertexArrays(VAO_TYPE::NB_VAO, m_vao);
+
+    m_tex_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox3.png", GL_RGBA);
 
     return 0;
 }
@@ -54,67 +50,47 @@ int Viewer::init_imgui()
     return 0;
 }
 
+int Viewer::init_shaders()
+{
+    m_program_points = read_program(std::string(SHADER_DIR) + "/points.glsl");
+    program_print_errors(m_program_points);
+
+    m_program_edges = read_program(std::string(SHADER_DIR) + "/edges.glsl");
+    program_print_errors(m_program_edges);
+
+    m_program_skybox = read_program(std::string(SHADER_DIR) + "/cubemap.glsl");
+    program_print_errors(m_program_skybox);
+
+    m_program_faces = read_program(std::string(SHADER_DIR) + "/faces.glsl");
+    program_print_errors(m_program_faces);
+
+    m_program_texture = read_program(std::string(SHADER_DIR) + "/base_texture.glsl");
+    program_print_errors(m_program_texture);
+    return 0;
+}
+
 int Viewer::init_demo_scalar_field()
 {
     //! Generate height map using Perlin noise
     m_hf_dim[0] = m_hf_dim[1] = 128;
 
-    std::vector<float> elevations = znoise::generate_hmf("noise.png", m_hf_dim[0], m_hf_dim[1], m_hurst, m_lacunarity, m_base_scale);
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim[0], m_hf_dim[1], m_hurst, m_lacunarity, m_base_scale);
     m_hf_a = {0.f, 0.f};
     m_hf_b = {(float)m_hf_dim[0], (float)m_hf_dim[1]};
 
-    m_hf = mmv::HF::Create(elevations, m_hf_a, m_hf_b, m_hf_dim[0], m_hf_dim[1]);
-    m_height_map = m_hf->Polygonize(m_scale);
+    m_hf = mmv::HF::Create(m_elevations, m_hf_a, m_hf_b, m_hf_dim[0], m_hf_dim[1]);
+    m_height_map = m_hf->Polygonize();
 
     m_height_map.bounds(pmin, pmax);
     m_cs.orbiter().lookat(pmin, pmax);
-    // m_hf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
-    // m_hf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
-    // m_hf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
 
-    //! Initialize buffers to draw a quad on which will be displayed the generated noise texture
-    m_positions = {
-        0.f, 0.f, 0.f,
-        1.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        0.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        0.f, 1.f, 0.f};
+    m_hf->SaveGradientAsImage("gradient.png");
+    m_hf->SaveNormalAsImage("normal.png");
 
-    m_texcoords = {
-        0.f, 0.f,
-        1.f, 0.f,
-        1.f, 1.f,
-        0.f, 0.f,
-        1.f, 1.f,
-        0.f, 1.f};
-
-    m_normals = {
-        0.f, 0.f, -1.f,
-        0.f, 0.f, -1.f,
-        0.f, 0.f, -1.f,
-        0.f, 0.f, -1.f,
-        0.f, 0.f, -1.f,
-        0.f, 0.f, -1.f};
-
-    glGenVertexArrays(VAO_TYPE::NB_VAO, m_vao);
-    glBindVertexArray(m_vao[VAO_TYPE::OBJECT]);
-
-    glGenBuffers(VBO_TYPE::NB_VBO, m_buffers);
-
-    load_buffer(m_buffers[VBO_TYPE::POSITION], VBO_TYPE::POSITION, 3, m_positions);
-    load_buffer(m_buffers[VBO_TYPE::TEXCOORD], VBO_TYPE::TEXCOORD, 2, m_texcoords);
-    load_buffer(m_buffers[VBO_TYPE::NORMAL], VBO_TYPE::NORMAL, 3, m_normals);
-
-    m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
-
-    glBindTexture(GL_TEXTURE_2D, m_texture_noise);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    m_program = read_program(std::string(DATA_DIR) + "/shaders/base_texture.glsl");
-
-    // m_cs.orbiter().lookat({0.f, 0.f, 0.f}, {1.f, 1.f, 0.f});
+    m_tex_elevation = read_texture(std::string(DATA_DIR) + "/output/elevation.png");
+    m_tex_normal = read_texture(std::string(DATA_DIR) + "/output/normal.png");
+    m_tex_gradient = read_texture(std::string(DATA_DIR) + "/output/gradient.png");
+    // m_tex_slope = read_texture(std::string(DATA_DIR) + "/output/slope.png");
 
     return 0;
 }
@@ -127,7 +103,7 @@ int Viewer::render()
         return -1;
     }
 
-    m_framebuffer.bind();
+    m_ImGUIFramebuffer.bind();
     glClearColor(m_clear_color[0], m_clear_color[1], m_clear_color[2], 1.f);
 
     glClearDepth(1.f);
@@ -141,7 +117,7 @@ int Viewer::render()
         return -1;
     }
 
-    m_framebuffer.unbind();
+    m_ImGUIFramebuffer.unbind();
 
     return 1;
 }
@@ -150,13 +126,18 @@ int Viewer::quit_any()
 {
     m_height_map.release();
 
-    release_program(m_program);
-    release_program(m_program_skybox);
     release_program(m_program_edges);
     release_program(m_program_points);
+    release_program(m_program_faces);
+    release_program(m_program_texture);
+    release_program(m_program_skybox);
 
-    glDeleteTextures(1, &m_texture_noise);
-    glDeleteTextures(1, &m_texture_skybox);
+    glDeleteTextures(1, &m_tex_skybox);
+    glDeleteTextures(1, &m_tex_normal);
+    glDeleteTextures(1, &m_tex_gradient);
+    glDeleteTextures(1, &m_tex_elevation);
+    glDeleteTextures(1, &m_tex_slope);
+
     glDeleteVertexArrays(VAO_TYPE::NB_VAO, m_vao);
     glDeleteBuffers(VBO_TYPE::NB_VBO, m_buffers);
 
@@ -191,28 +172,44 @@ int Viewer::render_any()
     DrawParam param;
     param.model(model).view(view).projection(projection);
 
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-
-    glUseProgram(m_program);
-    program_uniform(m_program, "u_MvpMatrix", mvp);
-    program_uniform(m_program, "uMvMatrix", mv);
-    program_uniform(m_program, "uNormalMatrix", normalMatrix);
-    program_uniform(m_program, "uLight", view(light));
-
-    program_use_texture(m_program, "uTexture", 0, m_texture_noise);
-
-    assert(m_vao != 0);
-    glBindVertexArray(m_vao[VAO_TYPE::OBJECT]);
-    glDrawArrays(GL_TRIANGLES, 0, m_positions.size() / 3);
-
     if (m_show_faces)
     {
-        // glEnable(GL_POLYGON_OFFSET_FILL);
-        // glPolygonOffset(1.0, 1.0);
-        // glDepthFunc(GL_LESS);
-        param.draw(m_height_map);
-        // glDisable(GL_POLYGON_OFFSET_FILL);
+        if (m_overlay != OVERLAY_TEX::NONE_TEX)
+        {
+            glUseProgram(m_program_texture);
+            program_uniform(m_program_texture, "u_MvpMatrix", mvp);
+            program_uniform(m_program_texture, "u_MvMatrix", mv);
+            program_uniform(m_program_texture, "u_NormalMatrix", normalMatrix);
+            program_uniform(m_program_texture, "u_Light", view(light));
+        }
+
+        switch (m_overlay)
+        {
+        case OVERLAY_TEX::ELEVATION_TEX:
+            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_elevation);
+            m_height_map.draw(m_program_texture, true, true, true, false, false);
+            break;
+        case OVERLAY_TEX::NORMAL_TEX:
+            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_normal);
+            m_height_map.draw(m_program_texture, true, true, true, false, false);
+            break;
+        case OVERLAY_TEX::GRADIENT_TEX:
+            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_gradient);
+            m_height_map.draw(m_program_texture, true, true, true, false, false);
+            break;
+        case OVERLAY_TEX::SLOPE_TEX:
+            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_slope);
+            m_height_map.draw(m_program_texture, true, true, true, false, false);
+            break;
+        default:
+            glUseProgram(m_program_faces);
+            program_uniform(m_program_faces, "u_MvpMatrix", mvp);
+            program_uniform(m_program_faces, "u_MvMatrix", mv);
+            program_uniform(m_program_faces, "u_NormalMatrix", normalMatrix);
+            program_uniform(m_program_faces, "u_Light", view(light));
+            m_height_map.draw(m_program_faces, true, false, true, false, false);
+            break;
+        }
     }
 
     if (m_show_edges)
@@ -238,7 +235,6 @@ int Viewer::render_any()
 
         glDrawArrays(GL_POINTS, 0, m_height_map.vertex_count());
     }
-    
 
     //! Render skybox
     if (m_show_skybox)
@@ -250,7 +246,7 @@ int Viewer::render_any()
         program_uniform(m_program_skybox, "u_InvMatrix", inv);
         program_uniform(m_program_skybox, "u_CameraPosition", m_cs.position());
 
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_skybox);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_skybox);
         program_uniform(m_program_skybox, "u_Skybox", int(0));
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -263,51 +259,48 @@ int Viewer::render_any()
     return 0;
 }
 
+int Viewer::update_height_field()
+{
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim[0], m_hf_dim[1], m_hurst, m_lacunarity, m_base_scale);
+
+    m_hf->Elevations(m_elevations, m_hf_dim[0], m_hf_dim[1]);
+    m_height_map = m_hf->Polygonize();
+    m_hf->SaveGradientAsImage("gradient.png");
+    m_hf->SaveNormalAsImage("normal.png");
+    m_tex_elevation = read_texture(std::string(DATA_DIR) + "/output/elevation.png");
+    m_tex_normal = read_texture(std::string(DATA_DIR) + "/output/normal.png");
+    m_tex_gradient = read_texture(std::string(DATA_DIR) + "/output/gradient.png");
+
+    return 0;
+}
+
 int Viewer::render_scalar_field_params()
 {
     if (ImGui::SliderFloat("Scale", &m_scale, 1.0f, 64.f))
     {
-        m_height_map = m_hf->Polygonize(m_scale);
+        update_height_field();
     }
     if (ImGui::CollapsingHeader("Perlin Noise"))
     {
-        ImGui::InputInt2("Scalar Field Dim", &m_hf_dim[0]);
+        ImGui::SliderInt2("Scalar Field Dim", &m_hf_dim[0], 16.f, 1024.f);
         ImGui::InputInt2("Output Dim", &m_output_dim[0]);
-
-        // ImGui::SliderInt("N Octaves", &m_noctaves, 1, 16);
-        // ImGui::InputFloat("Amplitude", &m_amplitude);
-        // ImGui::InputFloat("Frequency", &m_frequency);
-        // ImGui::SliderInt("I Func", &m_interpolation_func, 0, 2);
+        if (ImGui::Button("Generate"))
+        {
+            update_height_field();
+            center_camera(m_height_map);
+        }
 
         if (ImGui::SliderFloat("Hurst", &m_hurst, 0.01f, 5.0f))
         {
-            znoise::generate_hmf("/noise.png", m_output_dim[0], m_output_dim[1], m_hurst, m_lacunarity, m_base_scale);
-            m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
+            update_height_field();
         }
         if (ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.f, 15.f))
         {
-            znoise::generate_hmf("/noise.png", m_output_dim[0], m_output_dim[1], m_hurst, m_lacunarity, m_base_scale);
-            m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
+            update_height_field();
         }
         if (ImGui::SliderFloat("Base Scale", &m_base_scale, 0.001f, 1.f))
         {
-            znoise::generate_hmf("/noise.png", m_output_dim[0], m_output_dim[1], m_hurst, m_lacunarity, m_base_scale);
-            m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
-        }
-
-        if (ImGui::Button("Generate noise") || key_state(SDLK_g))
-        {
-            clear_key_state(SDLK_g);
-            znoise::generate_hmf("/noise.png", m_output_dim[0], m_output_dim[1], m_hurst, m_lacunarity, m_base_scale);
-            // std::vector<float> elevations = mmv::generate_height_map(m_hf_dim[0], m_hf_dim[1], m_noctaves, m_amplitude, m_frequency, (unsigned char)m_interpolation_func);
-
-            // m_hf->Elevations(elevations, m_hf_dim[0], m_hf_dim[1]);
-
-            // m_hf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
-            // m_hf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
-            // m_hf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
-
-            m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
+            update_height_field();
         }
     }
     return 0;
@@ -416,7 +409,7 @@ int Viewer::render_ui()
     if (window_width > 0 && window_height > 0 && ((float)m_ww != window_width || (float)m_wh != window_height))
     {
         // we rescale the framebuffer to the actual window size here and reset the glViewport
-        m_framebuffer.rescale(window_width, window_height);
+        m_ImGUIFramebuffer.rescale(window_width, window_height);
         glViewport(0, 0, window_width, window_height);
         m_cs.projection(window_width, window_height);
     }
@@ -425,7 +418,7 @@ int Viewer::render_ui()
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
     ImGui::GetWindowDrawList()->AddImage(
-        (void *)m_framebuffer.texture_id(),
+        (void *)m_ImGUIFramebuffer.texture_id(),
         ImVec2(pos.x, pos.y),
         ImVec2(pos.x + window_width, pos.y + window_height),
         ImVec2(0, 1),
@@ -435,6 +428,43 @@ int Viewer::render_ui()
 
     if (m_show_ui)
     {
+        ImGui::Begin("Map");
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_elevation, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Elevation");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::ELEVATION_TEX;
+        }
+        ImGui::SameLine();
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_gradient, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Gradient");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::GRADIENT_TEX;
+        }
+        ImGui::SameLine();
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_normal, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Normal");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::NORMAL_TEX;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear overlay", ImVec2(m_hf_dim[0], m_hf_dim[1])))
+        {
+            m_overlay = OVERLAY_TEX::NONE_TEX;
+        }
+        ImGui::End();
+
         ImGui::Begin("Control Panel");
 
         render_demo_buttons();

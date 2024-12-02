@@ -83,11 +83,11 @@ namespace mmv
 
     void ScalarField::Elevations(const std::vector<float> &elevations, int nx, int nz)
     {
-        assert(nx >= 0 && nz >= 0);
         m_Elements.clear();
         m_Elements = elevations;
-        m_Nx = nx;
-        m_Nz = nz;
+
+        if (nx > 0) m_Nx = nx;
+        if (nz > 0) m_Nz = nz;
     }
 
     Point ScalarField::Point3D(int i, int j) const
@@ -121,8 +121,8 @@ namespace mmv
 
     int ScalarField::SaveHeightAsImage(const std::string &filename, int nx, int nz)
     {
-        float nxf = float(nx < 0 ? m_Nx : nx);
-        float nzf = float(nz < 0 ? m_Nz : nz);
+        nx = nx < 0 ? m_Nx : nx;
+        nz = nz < 0 ? m_Nz : nz;
 
         std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
 
@@ -130,10 +130,10 @@ namespace mmv
 
         for (int j = 0; j < nz; ++j)
         {
-            float njz = j / nzf * m_Nz;
+            float njz = j / (float)nz * m_Nz;
             for (int i = 0; i < nx; ++i)
             {
-                float nix = i / nxf * m_Nx;
+                float nix = i / (float)nx * m_Nx;
                 float h = Height({nix, njz});
                 auto value = static_cast<unsigned char>(h * 255.f);
                 image.pixels[(j * nx + i) * 3 + 0] = value;
@@ -150,28 +150,26 @@ namespace mmv
 
     int ScalarField::SaveGradientAsImage(const std::string &filename, int nx, int nz)
     {
-        float nxf = float(nx < 0 ? m_Nx : nx);
-        float nzf = float(nz < 0 ? m_Nz : nz);
+        nx = nx < 0 ? m_Nx : nx;
+        nz = nz < 0 ? m_Nz : nz;
 
         std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
 
-        ImageData image(m_Nx, m_Nz, 3);
+        ImageData image(nx, nz, 3);
 
-        for (int j = 1; j < m_Nz - 1; ++j)
+        for (int j = 1; j < nz - 1; ++j)
         {
-            for (int i = 1; i < m_Nx - 1; ++i)
+            for (int i = 1; i < nx - 1; ++i)
             {
                 vec2 grad = Gradient(i, j);
-                float gx = static_cast<unsigned char>(std::max(0.f, std::min(255.f, grad.x * 255.f)));
-                float gz = static_cast<unsigned char>(std::max(0.f, std::min(255.f, grad.y * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(gx);
-                image.pixels[(j * nx + i) * 3 + 1] = 0;
-                image.pixels[(j * nx + i) * 3 + 2] = static_cast<unsigned char>(gz);
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (grad.x + 1.f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (grad.y + 1.f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = 0;
             }
         }
 
         write_image_data(image, fullpath.c_str());
-        utils::status("Image ", filename, " successfully saved in ./data/output");
+        utils::status("[SaveGradientAsImage] Image ", filename, " successfully saved in ./data/output");
 
         return 0;
     }
@@ -252,7 +250,7 @@ namespace mmv
         return create_ref<HF>(elevations, a, b, nx, nz);
     }
 
-    Mesh HeightField::Polygonize(float scale) const
+    Mesh HeightField::Polygonize() const
     {
         Mesh mesh(GL_TRIANGLE_STRIP);
 
@@ -262,10 +260,12 @@ namespace mmv
             for (int i = 1; i < m_Nx - 1; ++i)
             {
                 mesh.normal(Normal(i, j));
-                mesh.vertex(i, Height(i, j) * scale, j);
+                mesh.texcoord({(float)i / (float)m_Nx, (float)j / (float)m_Nz});
+                mesh.vertex(i, Height(i, j), j);
 
                 mesh.normal(Normal(i, j));
-                mesh.vertex(i, Height(i, j+1) * scale, j+1);
+                mesh.texcoord({(float)i / (float)m_Nx, (float)(j+1) / (float)m_Nz});
+                mesh.vertex(i, Height(i, j+1), j+1);
             }
             mesh.restart_strip();
         }
@@ -273,10 +273,36 @@ namespace mmv
         return mesh;
     }
 
+    int HeightField::SaveNormalAsImage(const std::string &filename, int nx, int nz) const
+    {
+        nx = nx < 0 ? m_Nx : nx;
+        nz = nz < 0 ? m_Nz : nz;
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        ImageData image(nx, nz, 3);
+
+        for (int j = 1; j < nz - 1; ++j)
+        {
+            for (int i = 1; i < nx - 1; ++i)
+            {
+                vec3 normal = Normal(i, j);
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (normal.x + 1.f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (normal.y + 1.f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (normal.z + 1.f) * 0.5f * 255.f)));
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("Image ", filename, " successfully saved in ./data/output");
+
+        return 0;
+    }
+
     Vector HeightField::Normal(int i, int j) const
     {
-        vec2 grad = -Gradient(i, j);
-        return normalize({grad.x, grad.y, 1.f});
+        vec2 grad = Gradient(i, j);
+        return normalize({-grad.x, 1.f, -grad.y});
     }
 
     float HeightField::Slope(int i, int j) const

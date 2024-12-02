@@ -50,7 +50,7 @@ namespace mmv
         static Ref<ScalarField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
 
         //! Modify elevation values 
-        void Elevations(const std::vector<float>& elevations, int nx, int nz);
+        void Elevations(const std::vector<float>& elevations, int nx = -1, int nz = -1);
 
         //! Get the 3D point from the scalar field.
         Point Point3D(int i, int j) const;
@@ -93,7 +93,9 @@ namespace mmv
 
         static Ref<HeightField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
 
-        Mesh Polygonize(float scale) const; 
+        Mesh Polygonize() const; 
+
+        int SaveNormalAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
 
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
