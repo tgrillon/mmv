@@ -38,7 +38,7 @@ public:
     //! rapproche / eloigne la camera du centre.
     void move( const float z );
 
-    inline float fov() const { return m_fov; }
+    inline float& fov() { return m_fov; }
     
     //! renvoie la transformation vue.
     Transform view( ) const;

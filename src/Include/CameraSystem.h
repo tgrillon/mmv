@@ -21,12 +21,15 @@ public:
     Transform view();
     Transform projection();
     Transform projection(float width, float height, float fov = -1.0f);
+    Transform viewport() const;
 
     void rotation(float mx, float my);
     void translation(float mx, float my, float dt, CameraMovement movement = CameraMovement::NONE);
     void move(float z, float dt);
 
     Point position() const;
+
+    float& fov();
 
     inline bool is_orbiter() const { return m_type == CameraType::ORBITER; }   
     inline bool is_freefly() const { return m_type == CameraType::FREEFLY; }   

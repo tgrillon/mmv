@@ -107,7 +107,7 @@ namespace mmv
     {
         assert(x > 0.f && x < float(m_Nx - 1));
         assert(z > 0.f && z < float(m_Nz - 1));
-
+        
         return {(Height(x + 1, z) - Height(x - 1, z)) * 0.5f, (Height(x, z + 1) - Height(x, z - 1)) * 0.5f};
     }
 
@@ -155,20 +155,18 @@ namespace mmv
 
         std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
 
-        ImageData image(nx, nz, 3);
+        ImageData image(m_Nx, m_Nz, 3);
 
-        for (int j = 0; j < nz; ++j)
+        for (int j = 1; j < m_Nz - 1; ++j)
         {
-            float njz = j / nzf * m_Nz;
-            for (int i = 0; i < nx; ++i)
+            for (int i = 1; i < m_Nx - 1; ++i)
             {
-                float nix = i / nxf * m_Nx;
-                vec2 grad = Gradient(nix, njz);
-                float gx = static_cast<unsigned char>(std::min(0.f, std::max(255.f, grad.x * 255.f)));
-                float gz = static_cast<unsigned char>(std::min(0.f, std::max(255.f, grad.y * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 0] = gx;
+                vec2 grad = Gradient(i, j);
+                float gx = static_cast<unsigned char>(std::max(0.f, std::min(255.f, grad.x * 255.f)));
+                float gz = static_cast<unsigned char>(std::max(0.f, std::min(255.f, grad.y * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(gx);
                 image.pixels[(j * nx + i) * 3 + 1] = 0;
-                image.pixels[(j * nx + i) * 3 + 2] = gz;
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<unsigned char>(gz);
             }
         }
 

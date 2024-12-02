@@ -17,5 +17,7 @@ add_subdirectory(vendor/gkit)
 add_subdirectory(vendor/imgui)
 # Fetching exprtk library 
 add_subdirectory(vendor/exprtk)
+# Fetching znoise library 
+add_subdirectory(vendor/znoise)
 
 add_subdirectory(src)     

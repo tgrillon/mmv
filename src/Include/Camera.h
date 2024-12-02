@@ -29,6 +29,7 @@ public:
     Transform view();
     Transform projection();
     Transform projection(float width, float height, float fov);
+    Transform viewport() const;
 
     void translation(CameraMovement direction, float dt);
     void rotation(float xoffset, float yoffset, GLboolean constrainPitch = true);

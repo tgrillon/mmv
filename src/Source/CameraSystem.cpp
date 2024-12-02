@@ -80,6 +80,24 @@ Point CameraSystem::position() const
         return m_freefly.position();
 }
 
+
+Transform CameraSystem::viewport() const
+{
+    if (is_orbiter())
+        return m_orbiter.viewport();
+    else 
+        return m_freefly.viewport();
+}
+
+float& CameraSystem::fov()
+{
+    if (is_orbiter())
+        return m_orbiter.fov();
+    else 
+        return m_freefly.fov();
+}
+
+
 CameraType CameraSystem::type() const
 {
     return m_type;

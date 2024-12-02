@@ -1,95 +1,8 @@
 #include "Viewer.h"
 
 #include "Utils.h"
-
-Mesh make_grid(const int n = 10)
-{
-    Mesh grid = Mesh(GL_LINES);
-
-    // grille
-    grid.color(White());
-    for (int x = 0; x < n; x++)
-    {
-        float px = float(x) - float(n) / 2 + .5f;
-        grid.vertex(Point(px, 0, -float(n) / 2 + .5f));
-        grid.vertex(Point(px, 0, float(n) / 2 - .5f));
-    }
-
-    for (int z = 0; z < n; z++)
-    {
-        float pz = float(z) - float(n) / 2 + .5f;
-        grid.vertex(Point(-float(n) / 2 + .5f, 0, pz));
-        grid.vertex(Point(float(n) / 2 - .5f, 0, pz));
-    }
-
-    // axes XYZ
-    grid.color(Red());
-    grid.vertex(Point(0, .1, 0));
-    grid.vertex(Point(1, .1, 0));
-
-    grid.color(Green());
-    grid.vertex(Point(0, .1, 0));
-    grid.vertex(Point(0, 1, 0));
-
-    grid.color(Blue());
-    grid.vertex(Point(0, .1, 0));
-    grid.vertex(Point(0, .1, 1));
-
-    glLineWidth(2);
-
-    return grid;
-}
-
-void load_buffer(int vbo, int location, int size, const std::vector<float> &data)
-{
-    auto byteCount = sizeof(float) * data.size();
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, byteCount, data.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, size * sizeof(float), (const void *)0);
-    glEnableVertexAttribArray(location);
-}
-
-void load_buffer(int vbo, int location, int size, const std::vector<int> &data)
-{
-    auto byteCount = sizeof(int) * data.size();
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, byteCount, data.data(), GL_STATIC_DRAW);
-
-    glVertexAttribIPointer(location, size, GL_INT, size * sizeof(int), (const void *)0);
-    glEnableVertexAttribArray(location);
-}
-
-// Load a VBO for an instance vertex attribute
-template <typename T = float>
-void load_buffer_i(int vbo, int location, int size, const std::vector<T> &data)
-{
-    load_buffer(vbo, location, size, data);
-
-    glVertexAttribDivisor(location, 1);
-}
-
-Mesh read_mesh(const std::string &obj)
-{
-    return read_mesh(obj.c_str());
-}
-
-GLuint read_program(const std::string &filepath)
-{
-    return read_program(filepath.c_str());
-}
-
-GLuint read_texture(const std::string &texture)
-{
-    return read_texture(0, texture.c_str());
-}
-
-Image read_image(const std::string &image)
-{
-    return read_image(image.c_str());
-}
+#include "Buffer.h"
+#include "gkitext.h"
 
 Viewer::Viewer() : App(1024, 640), m_framebuffer(window_width(), window_height())
 {
@@ -103,12 +16,16 @@ int Viewer::init_any()
     m_program_edges = read_program(std::string(SHADER_DIR) + "/edges.glsl");
     program_print_errors(m_program_edges);
 
+    m_program_skybox = read_program(std::string(SHADER_DIR) + "/cubemap.glsl");
+
     m_grid = make_grid();
 
     m_grid.bounds(pmin, pmax);
     m_cs.orbiter().lookat(pmin, pmax);
 
     init_demo_scalar_field();
+
+    m_texture_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox2.jpg", GL_RGBA);
 
     return 0;
 }
@@ -155,7 +72,7 @@ int Viewer::init_demo_scalar_field()
 
     m_sf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
     m_sf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
-    m_sf->SaveGradientAsImage("gradient.txt", m_output_dim[0], m_output_dim[1]);
+    // m_sf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
 
     //! Initialize buffers to draw a quad on which will be displayed the generated noise texture
     m_positions = {
@@ -182,10 +99,10 @@ int Viewer::init_demo_scalar_field()
         0.f, 0.f, -1.f,
         0.f, 0.f, -1.f};
 
-    glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
+    glGenVertexArrays(VAO_TYPE::NB_VAO, m_vao);
+    glBindVertexArray(m_vao[VAO_TYPE::OBJECT]);
 
-    glGenBuffers(VBO_TYPE::NB_ELT, m_buffers);
+    glGenBuffers(VBO_TYPE::NB_VBO, m_buffers);
 
     load_buffer(m_buffers[VBO_TYPE::POSITION], VBO_TYPE::POSITION, 3, m_positions);
     load_buffer(m_buffers[VBO_TYPE::TEXCOORD], VBO_TYPE::TEXCOORD, 2, m_texcoords);
@@ -213,9 +130,12 @@ int Viewer::render()
     }
 
     m_framebuffer.bind();
-    glClearColor(0.678f, 0.686f, 0.878f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // we're not using the stencil buffer now
+    glClearColor(m_clear_color[0], m_clear_color[1], m_clear_color[2], 1.f);
+
+    glClearDepth(1.f);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (render_any() < 0)
     {
@@ -231,6 +151,16 @@ int Viewer::render()
 int Viewer::quit_any()
 {
     m_grid.release();
+
+    release_program(m_program);
+    release_program(m_program_skybox);
+    release_program(m_program_edges);
+    release_program(m_program_points);
+
+    glDeleteTextures(1, &m_texture_noise);
+    glDeleteTextures(1, &m_texture_skybox);
+    glDeleteVertexArrays(VAO_TYPE::NB_VAO, m_vao);
+    glDeleteBuffers(VBO_TYPE::NB_VBO, m_buffers);
 
     return 0;
 }
@@ -252,6 +182,7 @@ int Viewer::render_any()
     Transform model = Identity();
     Transform view = m_cs.view();
     Transform projection = m_cs.projection();
+    Transform viewport = m_cs.viewport();
 
     Transform mv = view * model;
     Transform mvp = projection * mv;
@@ -274,8 +205,28 @@ int Viewer::render_any()
     program_use_texture(m_program, "uTexture", 0, m_texture_noise);
 
     assert(m_vao != 0);
-    glBindVertexArray(m_vao);
+    glBindVertexArray(m_vao[VAO_TYPE::OBJECT]);
     glDrawArrays(GL_TRIANGLES, 0, m_positions.size() / 3);
+
+    glBindVertexArray(m_vao[VAO_TYPE::CUBEMAP]);
+    if (m_show_skybox)
+    {
+        Transform inv = Inverse(viewport * projection * view);
+
+        glUseProgram(m_program_skybox);
+        glBindVertexArray(m_vao[VAO_TYPE::CUBEMAP]);
+        program_uniform(m_program_skybox, "u_InvMatrix", inv);
+        program_uniform(m_program_skybox, "u_CameraPosition", m_cs.position());
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_skybox);
+        program_uniform(m_program_skybox, "u_Skybox", int(0));
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        glUseProgram(0);
+        glBindVertexArray(0);
+    }
 
     /*
     if (m_show_faces)
@@ -336,7 +287,7 @@ int Viewer::render_scalar_field_params()
 
             m_sf->SaveHeightAsImage("noise.png", m_output_dim[0], m_output_dim[1]);
             m_sf->SaveHeightAsTxt("noise.txt", m_output_dim[0], m_output_dim[1]);
-            m_sf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
+            // m_sf->SaveGradientAsImage("gradient.png", m_output_dim[0], m_output_dim[1]);
 
             m_texture_noise = read_texture(std::string(DATA_DIR) + "/output/noise.png");
         }
@@ -348,6 +299,11 @@ int Viewer::handle_event()
 {
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
+        if (key_state(SDLK_k))
+        {
+            clear_key_state(SDLK_k);
+            m_show_skybox = !m_show_skybox;
+        }
         if (key_state(SDLK_TAB))
         {
             clear_key_state(SDLK_TAB);
@@ -462,14 +418,14 @@ int Viewer::render_ui()
 
         render_demo_buttons();
 
-        if (m_cs.is_freefly())
+        ImGui::Checkbox("Show Skybox", &m_show_skybox);
+        if (ImGui::CollapsingHeader("Camera"))
         {
-            utils::print("Here!");
-            if (ImGui::CollapsingHeader("Camera"))
+            ImGui::SliderFloat("FOV", &m_cs.fov(), 35.0f, 120.0f);
+            if (m_cs.is_freefly())
             {
                 ImGui::SliderFloat("Movement speed", &m_cs.freefly().movement_speed(), 1.0f, 50.0f);
                 ImGui::SliderFloat("Rotation speed", &m_cs.freefly().rotation_speed(), 0.1f, 1.0f);
-                ImGui::SliderFloat("FOV", &m_cs.freefly().fov(), 35.0f, 120.0f);
                 ImGui::InputFloat3("Position", &m_cs.freefly().position().x);
             }
         }
@@ -487,6 +443,7 @@ int Viewer::render_ui()
 
             if (ImGui::CollapsingHeader("Colors"))
             {
+                ImGui::ColorPicker3("Clear color", &m_clear_color[0]);
                 ImGui::ColorPicker3("Point color", &m_color_point[0]);
                 ImGui::ColorPicker3("Edge color", &m_color_edge[0]);
             }

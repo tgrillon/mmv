@@ -23,6 +23,11 @@ Transform Camera::projection(float width, float height, float fov)
     return projection();
 }
 
+Transform Camera::viewport() const
+{ 
+    return Viewport(m_window_width, m_window_height); 
+}  
+
 void Camera::translation(CameraMovement direction, float dt)
 {
     float velocity = m_movement_speed * dt;

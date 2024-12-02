@@ -11,6 +11,8 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${SOURCE_DIR}/HeightField.cpp
                                ${SOURCE_DIR}/PerlinNoise.cpp
                                ${SOURCE_DIR}/Timer.cpp
+                               ${SOURCE_DIR}/Buffer.cpp
+                               ${SOURCE_DIR}/gkitext.cpp
                                ${SOURCE_DIR}/vecext.cpp
                                ${SOURCE_DIR}/pch.cpp
 
@@ -23,6 +25,8 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${INCLUDE_DIR}/HeightField.h
                                ${INCLUDE_DIR}/PerlinNoise.h
                                ${INCLUDE_DIR}/Timer.h
+                               ${INCLUDE_DIR}/Buffer.h
+                               ${INCLUDE_DIR}/gkitext.h
                                ${INCLUDE_DIR}/vecext.h
                                ${INCLUDE_DIR}/Utils.h
                                ${INCLUDE_DIR}/Memory.h
@@ -34,6 +38,7 @@ add_executable(${PROJECT_NAME} main.cpp
 target_link_libraries(${PROJECT_NAME} PRIVATE gkit
                                               imgui
                                               exprtk
+                                              znoise
                                               )
                                               
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR}) 
