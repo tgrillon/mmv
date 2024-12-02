@@ -44,10 +44,10 @@ namespace mmv
     {
     public:
         ScalarField();
-        ScalarField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
+        ScalarField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
         ~ScalarField() = default;
 
-        static Ref<ScalarField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
+        static Ref<ScalarField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
 
         //! Modify elevation values 
         void Elevations(const std::vector<float>& elevations, int nx, int nz);
@@ -88,10 +88,12 @@ namespace mmv
     {
     public: 
         HeightField();
-        HeightField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
+        HeightField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
         ~HeightField()=default;
 
-        static Ref<HeightField> Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz);
+        static Ref<HeightField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
+
+        Mesh Polygonize(float scale) const; 
 
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 

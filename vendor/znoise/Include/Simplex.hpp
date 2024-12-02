@@ -3,7 +3,7 @@
 // For conditions of distribution and use, see LICENSE file
 
 #ifndef SIMPLEX_HPP
-#define SIMPLE_HPP
+#define SIMPLEX_HPP
 
 #include "NoiseBase.hpp"
 #include <initializer_list>

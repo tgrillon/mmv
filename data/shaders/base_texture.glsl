@@ -5,7 +5,7 @@ layout(location=0) in vec3 aPosition;
 layout(location=1) in vec2 aTexcoord;
 layout(location=2) in vec3 aNormal;
 
-uniform mat4 uMvpMatrix; 
+uniform mat4 u_MvpMatrix; 
 uniform mat4 uMvMatrix; 
 uniform mat4 uNormalMatrix; 
 
@@ -18,7 +18,7 @@ void main(void)
     vNormal = mat3(uNormalMatrix) * aNormal; 
     vPosition = vec3(uMvMatrix * vec4(aPosition, 1.0));
     vTexcoord = aTexcoord;
-    gl_Position = uMvpMatrix * vec4(aPosition, 1.0);
+    gl_Position = u_MvpMatrix * vec4(aPosition, 1.0);
 }
 
 #endif

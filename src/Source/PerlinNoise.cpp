@@ -1,5 +1,7 @@
 #include "PerlinNoise.h"
 
+#include "Utils.h"
+
 namespace mmv
 {
     float lerp(float a, float b, float t)
@@ -28,7 +30,8 @@ namespace mmv
 
         std::vector<float> elevations(w * h, 0.f);
 
-        PNG2D noise(inter_func == 0 ? lerp : inter_func == 1 ? cosine : smoothstep); 
+        PNG2D noise(inter_func == 0 ? lerp : inter_func == 1 ? cosine
+                                                             : smoothstep);
 
         float maxNoiseVal = 0.f;
         for (int z = 0; z < h; ++z)
@@ -45,12 +48,14 @@ namespace mmv
                     fk *= 2.0f;
                 }
 
-                if (value > maxNoiseVal) maxNoiseVal = value;
+                if (value > maxNoiseVal)
+                    maxNoiseVal = value;
                 elevations[z * w + x] = value;
             }
         }
 
-        for (float& e : elevations) e /= maxNoiseVal;  
+        for (float &e : elevations)
+            e /= maxNoiseVal;
 
         return elevations;
     }
@@ -109,10 +114,299 @@ namespace mmv
         float c01 = m_RandomValues[ry1 * s_MaxVertices + rx0];
         float c11 = m_RandomValues[ry1 * s_MaxVertices + rx1];
 
-        float nx0 = m_InterpolationFunc(c00, c10, tx); 
-        float nx1 = m_InterpolationFunc(c01, c11, tx); 
+        float nx0 = m_InterpolationFunc(c00, c10, tx);
+        float nx1 = m_InterpolationFunc(c01, c11, tx);
 
         return m_InterpolationFunc(nx0, nx1, ty);
     }
 
 } // namespace mmv
+
+namespace znoise
+{
+    std::vector<float> generate_perlin(const std::string &filename, int width, int height)
+    {
+        Perlin perlin;
+        perlin.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int r = 0; r < height; ++r)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = perlin.Get({(float)i, (float)r}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[r * width + i] = h;
+
+                image.pixels[(r * width + i) * 3 + 0] = value;
+                image.pixels[(r * width + i) * 3 + 1] = value;
+                image.pixels[(r * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_perlin] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_perlin_3dslice(const std::string &filename, int width, int height)
+    {
+        Perlin perlin;
+        perlin.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int r = 0; r < height; ++r)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = perlin.Get({(float)i, (float)r, 0.0f}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[r * width + i] = h;
+
+                image.pixels[(r * width + i) * 3 + 0] = value;
+                image.pixels[(r * width + i) * 3 + 1] = value;
+                image.pixels[(r * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_perlin_3dslice] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_perlin_4dslice(const std::string &filename, int width, int height)
+    {
+        Perlin perlin;
+        perlin.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int r = 0; r < height; ++r)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = perlin.Get({(float)i, (float)r, 0.0f, 1.0f}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[r * width + i] = h;
+
+                image.pixels[(r * width + i) * 3 + 0] = value;
+                image.pixels[(r * width + i) * 3 + 1] = value;
+                image.pixels[(r * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_perlin_4dslice] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_simplex(const std::string &filename, int width, int height)
+    {
+        Simplex simplex;
+        simplex.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = simplex.Get({(float)i, (float)j}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_simplex] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_simplex_3dslice(const std::string &filename, int width, int height)
+    {
+        Simplex simplex;
+        simplex.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = simplex.Get({(float)i, (float)j, 1.0f}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_simplex_3dslice] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_simplex_4dslice(const std::string &filename, int width, int height)
+    {
+        Simplex simplex;
+        simplex.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = simplex.Get({(float)i, (float)j, 1.0f, 2.0f}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_simplex_4dslice] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_worley(const std::string &filename, int width, int height, WorleyFunction worleyFunc)
+    {
+        Worley worley;
+        worley.Shuffle(10);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = worley.Get({(float)i, (float)j}, 0.01f);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_worley] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_hmf(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale)
+    {
+        Simplex simplex;
+        simplex.Shuffle(10);
+
+        HybridMultiFractal hmf(simplex);
+        hmf.SetParameters(hurst, lacunarity, 5.f);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = hmf.Get({(float)i, (float)j}, baseScale);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_hmf] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+    std::vector<float> generate_fbm(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale)
+    {
+        Simplex simplex;
+        simplex.Shuffle(10);
+
+        FBM fbm(simplex);
+        fbm.SetParameters(hurst, lacunarity, 5.f);
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::vector<float> elevations(width * height);
+        ImageData image(width, height, 3);
+
+        for (int j = 0; j < height; ++j)
+        {
+            for (int i = 0; i < width; ++i)
+            {
+                float h = fbm.Get({(float)i, (float)j}, baseScale);
+                auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
+
+                elevations[j * width + i] = h;
+
+                image.pixels[(j * width + i) * 3 + 0] = value;
+                image.pixels[(j * width + i) * 3 + 1] = value;
+                image.pixels[(j * width + i) * 3 + 2] = value;
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[generate_fbm] Image ", filename, " successfully saved in ./data/output");
+
+        return elevations;
+    }
+
+} // namespace znoise

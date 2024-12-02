@@ -37,7 +37,7 @@ private:
     int render_menu_bar();
 
 private:
-    Mesh m_grid; 
+    Mesh m_height_map; 
 
     GLuint m_program_points;
     GLuint m_program_edges;
@@ -69,20 +69,28 @@ private:
     bool m_activate_height_map_demo {false}; 
 
     //! Scalar field attributes
-    Ref<mmv::SF> m_sf;
+    Ref<mmv::HF> m_hf;
 
-    vec2 m_sf_a, m_sf_b;
+    float m_scale{1.0f};
+
+    vec2 m_hf_a, m_hf_b;
 
     Point pmin, pmax;
 
-    int m_sf_dim[2] {128, 128};
+    int m_hf_dim[2] {128, 128};
     int m_output_dim[2] {256, 256};
 
+    int m_ww, m_wh; // window width/height
+
+    //! Noise
     int m_noctaves{4};
     float m_amplitude{0.035f};
     float m_frequency{0.05f};
-
     int m_interpolation_func{1};
+
+    float m_hurst{0.2f}; 
+    float m_lacunarity{2.5f}; 
+    float m_base_scale{0.005f}; 
 
     enum VAO_TYPE
     {

@@ -41,5 +41,14 @@
 //! Exprtk
 #include "exprtk_wrapper.h"
 
+//! ZNoise
+#include "Enums.hpp"
+#include "FBM.hpp"
+#include "HybridMultiFractal.hpp"
+#include "Perlin.hpp"
+#include "Simplex.hpp"
+#include "Worley.hpp"
+
+
 //! SDL2
 #include <SDL2/SDL.h>

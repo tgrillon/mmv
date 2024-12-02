@@ -14,7 +14,7 @@ namespace mmv
 
     //! Thanks to https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/procedural-patterns-noise-part-1/creating-simple-2D-noise.html
 
-    //! 1-dimensional Perlin noise generator 
+    //! 1-dimensional Perlin noise generator
     class PerlinNoiseGenerator1D
     {
     public:
@@ -33,14 +33,15 @@ namespace mmv
         std::array<float, s_MaxVertices> m_RandomValues;
     } typedef PNG1D;
 
-    //! 2-dimensional Perlin noise generator 
+    //! 2-dimensional Perlin noise generator
     class PerlinNoiseGenerator2D
     {
     public:
         PerlinNoiseGenerator2D(const std::function<float(float, float, float)> &inter_func);
 
-        float eval(const vec2& p) const;
+        float eval(const vec2 &p) const;
         float eval(float x, float y) const;
+
     public:
         static const int s_MaxVertices = 256;
         static const int s_MaxVerticesMask = s_MaxVertices - 1;
@@ -51,3 +52,25 @@ namespace mmv
     } typedef PNG2D;
 
 } // namespace mmv
+
+//! Znoise interface
+namespace znoise
+{
+    std::vector<float> generate_perlin(const std::string &filename, int width, int height);
+
+    std::vector<float> generate_perlin_3dslice(const std::string &filename, int width, int height);
+    
+    std::vector<float> generate_perlin_4dslice(const std::string &filename, int width, int height);
+    
+    std::vector<float> generate_simplex(const std::string &filename, int width, int height);
+    
+    std::vector<float> generate_simplex_3dslice(const std::string &filename, int width, int height);
+    
+    std::vector<float> generate_simplex_4dslice(const std::string &filename, int width, int height);
+    
+    std::vector<float> generate_worley(const std::string &filename, int width, int height, WorleyFunction worleyFunc);
+    
+    std::vector<float> generate_hmf(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale);
+    
+    std::vector<float> generate_fbm(const std::string &filename, int width, int height, float hurst, float lacunarity, float baseScale);
+} // namespace znoise

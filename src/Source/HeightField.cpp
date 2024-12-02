@@ -70,15 +70,15 @@ namespace mmv
         m_Diag = Diagonal();
     }
 
-    ScalarField::ScalarField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz) : Grid(heights, a, b, nx, nz)
+    ScalarField::ScalarField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz) : Grid(elevations, a, b, nx, nz)
     {
-        assert(nx * nz == heights.size());
+        assert(nx * nz == elevations.size());
         m_Diag = Diagonal();
     }
 
-    Ref<SF> ScalarField::Create(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz)
+    Ref<SF> ScalarField::Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz)
     {
-        return create_ref<SF>(heights, a, b, nx, nz);
+        return create_ref<SF>(elevations, a, b, nx, nz);
     }
 
     void ScalarField::Elevations(const std::vector<float> &elevations, int nx, int nz)
@@ -107,7 +107,7 @@ namespace mmv
     {
         assert(x > 0.f && x < float(m_Nx - 1));
         assert(z > 0.f && z < float(m_Nz - 1));
-        
+
         return {(Height(x + 1, z) - Height(x - 1, z)) * 0.5f, (Height(x, z + 1) - Height(x, z - 1)) * 0.5f};
     }
 
@@ -135,7 +135,7 @@ namespace mmv
             {
                 float nix = i / nxf * m_Nx;
                 float h = Height({nix, njz});
-                float value = static_cast<unsigned char>(h * 255.f);
+                auto value = static_cast<unsigned char>(h * 255.f);
                 image.pixels[(j * nx + i) * 3 + 0] = value;
                 image.pixels[(j * nx + i) * 3 + 1] = value;
                 image.pixels[(j * nx + i) * 3 + 2] = value;
@@ -202,7 +202,7 @@ namespace mmv
                 float nix = i / nxf * m_Nx;
                 float h = Height({nix, njz});
                 float y = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (h + min) * s)));
-                file << (float)i << ' ' << (float)j << ' ' <<  y << '\n';
+                file << (float)i << ' ' << (float)j << ' ' << y << '\n';
             }
         }
 
@@ -243,8 +243,34 @@ namespace mmv
     {
     }
 
-    HeightField::HeightField(const std::vector<float> &heights, const vec2 &a, const vec2 &b, int nx, int nz) : ScalarField(heights, a, b, nx, nz)
+    HeightField::HeightField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz) : ScalarField(elevations, a, b, nx, nz)
     {
+    }
+
+    Ref<HeightField> HeightField::Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz)
+    {
+        return create_ref<HF>(elevations, a, b, nx, nz);
+    }
+
+    Mesh HeightField::Polygonize(float scale) const
+    {
+        Mesh mesh(GL_TRIANGLE_STRIP);
+
+        // float step = 1.f / (n - 1); 
+        for (int j = 1; j < m_Nz - 1; ++j)
+        {
+            for (int i = 1; i < m_Nx - 1; ++i)
+            {
+                mesh.normal(Normal(i, j));
+                mesh.vertex(i, Height(i, j) * scale, j);
+
+                mesh.normal(Normal(i, j));
+                mesh.vertex(i, Height(i, j+1) * scale, j+1);
+            }
+            mesh.restart_strip();
+        }
+
+        return mesh;
     }
 
     Vector HeightField::Normal(int i, int j) const
