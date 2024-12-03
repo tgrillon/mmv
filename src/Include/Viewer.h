@@ -79,10 +79,12 @@ private:
 
     Point pmin, pmax;
 
-    int m_hf_dim[2]{128, 128};
-    int m_output_dim[2]{256, 256};
+    int m_hf_dim{128};
+    int m_output_dim{256};
 
     int m_ww, m_wh; // window width/height
+
+    int m_resolution{128};
 
     //! Noise
     int m_noctaves{4};

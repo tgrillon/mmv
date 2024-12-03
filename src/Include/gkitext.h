@@ -18,7 +18,7 @@ Mesh read_mesh(const std::string &obj);
 
 GLuint read_program(const std::string &shader);
 
-GLuint read_texture(const std::string &texture);
+GLuint read_texture(const int unit, const std::string &texture);
 
 Image read_image(const std::string &image);
 

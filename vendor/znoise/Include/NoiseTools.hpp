@@ -8,4 +8,4 @@
 int fastfloor(float n);
 int JenkinsHash(int a, int b, int c);
 
-#endif // NOISETOOLS_HPP
+#endif // NOISETOOLS_HPP 

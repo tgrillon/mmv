@@ -93,9 +93,10 @@ namespace mmv
 
         static Ref<HeightField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
 
-        Mesh Polygonize() const; 
+        Mesh Polygonize(int resolution) const; 
 
         int SaveNormalAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
+        int SaveSlopeAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
 
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 

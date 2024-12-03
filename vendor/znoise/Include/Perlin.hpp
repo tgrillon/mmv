@@ -6,14 +6,14 @@
 #define PERLIN_HPP
 
 #include "NoiseBase.hpp"
-#include <initializer_list>
+#include <initializer_list> 
 
 class Perlin : public NoiseBase
 {
     public:
       Perlin();
       Perlin(unsigned int seed);
-      ~Perlin() = default;
+      ~Perlin() = default; 
 
       float Get(std::initializer_list<float> coordinates, float scale) const;
 

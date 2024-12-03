@@ -58,9 +58,9 @@ GLuint read_program(const std::string &shader)
     return read_program(shader.c_str());
 }
 
-GLuint read_texture(const std::string &texture)
+GLuint read_texture(const int unit, const std::string &texture)
 {
-    return read_texture(0, texture.c_str());
+    return read_texture(unit, texture.c_str());
 }
 
 Image read_image(const std::string &image)

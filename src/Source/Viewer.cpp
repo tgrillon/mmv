@@ -72,25 +72,25 @@ int Viewer::init_shaders()
 int Viewer::init_demo_scalar_field()
 {
     //! Generate height map using Perlin noise
-    m_hf_dim[0] = m_hf_dim[1] = 128;
 
-    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim[0], m_hf_dim[1], m_hurst, m_lacunarity, m_base_scale);
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale);
     m_hf_a = {0.f, 0.f};
-    m_hf_b = {(float)m_hf_dim[0], (float)m_hf_dim[1]};
+    m_hf_b = {(float)m_hf_dim, (float)m_hf_dim};
 
-    m_hf = mmv::HF::Create(m_elevations, m_hf_a, m_hf_b, m_hf_dim[0], m_hf_dim[1]);
-    m_height_map = m_hf->Polygonize();
+    m_hf = mmv::HF::Create(m_elevations, m_hf_a, m_hf_b, m_hf_dim, m_hf_dim);
+    m_height_map = m_hf->Polygonize(m_resolution);
 
     m_height_map.bounds(pmin, pmax);
     m_cs.orbiter().lookat(pmin, pmax);
 
-    m_hf->SaveGradientAsImage("gradient.png");
-    m_hf->SaveNormalAsImage("normal.png");
+    m_hf->SaveGradientAsImage("gradient.png", m_output_dim, m_output_dim);
+    m_hf->SaveNormalAsImage("normal.png", m_output_dim, m_output_dim);
+    m_hf->SaveSlopeAsImage("slope.png", m_output_dim, m_output_dim);
 
-    m_tex_elevation = read_texture(std::string(DATA_DIR) + "/output/elevation.png");
-    m_tex_normal = read_texture(std::string(DATA_DIR) + "/output/normal.png");
-    m_tex_gradient = read_texture(std::string(DATA_DIR) + "/output/gradient.png");
-    // m_tex_slope = read_texture(std::string(DATA_DIR) + "/output/slope.png");
+    m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
+    m_tex_normal = read_texture(0, std::string(DATA_DIR) + "/output/normal.png");
+    m_tex_gradient = read_texture(0, std::string(DATA_DIR) + "/output/gradient.png");
+    m_tex_slope = read_texture(0, std::string(DATA_DIR) + "/output/slope.png");
 
     return 0;
 }
@@ -181,34 +181,33 @@ int Viewer::render_any()
             program_uniform(m_program_texture, "u_MvMatrix", mv);
             program_uniform(m_program_texture, "u_NormalMatrix", normalMatrix);
             program_uniform(m_program_texture, "u_Light", view(light));
-        }
 
-        switch (m_overlay)
+            switch (m_overlay)
+            {
+            case OVERLAY_TEX::ELEVATION_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_elevation);
+                break;
+            case OVERLAY_TEX::NORMAL_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_normal);
+                break;
+            case OVERLAY_TEX::GRADIENT_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_gradient);
+                break;
+            case OVERLAY_TEX::SLOPE_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_slope);
+                break;
+            }
+
+            m_height_map.draw(m_program_texture, true, true, true, false, false);
+        }
+        else
         {
-        case OVERLAY_TEX::ELEVATION_TEX:
-            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_elevation);
-            m_height_map.draw(m_program_texture, true, true, true, false, false);
-            break;
-        case OVERLAY_TEX::NORMAL_TEX:
-            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_normal);
-            m_height_map.draw(m_program_texture, true, true, true, false, false);
-            break;
-        case OVERLAY_TEX::GRADIENT_TEX:
-            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_gradient);
-            m_height_map.draw(m_program_texture, true, true, true, false, false);
-            break;
-        case OVERLAY_TEX::SLOPE_TEX:
-            program_use_texture(m_program_texture, "u_Texture", 0, m_tex_slope);
-            m_height_map.draw(m_program_texture, true, true, true, false, false);
-            break;
-        default:
             glUseProgram(m_program_faces);
             program_uniform(m_program_faces, "u_MvpMatrix", mvp);
             program_uniform(m_program_faces, "u_MvMatrix", mv);
             program_uniform(m_program_faces, "u_NormalMatrix", normalMatrix);
             program_uniform(m_program_faces, "u_Light", view(light));
             m_height_map.draw(m_program_faces, true, false, true, false, false);
-            break;
         }
     }
 
@@ -261,15 +260,17 @@ int Viewer::render_any()
 
 int Viewer::update_height_field()
 {
-    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim[0], m_hf_dim[1], m_hurst, m_lacunarity, m_base_scale);
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale);
 
-    m_hf->Elevations(m_elevations, m_hf_dim[0], m_hf_dim[1]);
-    m_height_map = m_hf->Polygonize();
-    m_hf->SaveGradientAsImage("gradient.png");
-    m_hf->SaveNormalAsImage("normal.png");
-    m_tex_elevation = read_texture(std::string(DATA_DIR) + "/output/elevation.png");
-    m_tex_normal = read_texture(std::string(DATA_DIR) + "/output/normal.png");
-    m_tex_gradient = read_texture(std::string(DATA_DIR) + "/output/gradient.png");
+    m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
+    m_height_map = m_hf->Polygonize(m_resolution);
+    m_hf->SaveGradientAsImage("gradient.png", m_output_dim, m_output_dim);
+    m_hf->SaveNormalAsImage("normal.png", m_output_dim, m_output_dim);
+    m_hf->SaveSlopeAsImage("slope.png", m_output_dim, m_output_dim);
+    m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
+    m_tex_normal = read_texture(0, std::string(DATA_DIR) + "/output/normal.png");
+    m_tex_gradient = read_texture(0, std::string(DATA_DIR) + "/output/gradient.png");
+    m_tex_slope = read_texture(0, std::string(DATA_DIR) + "/output/slope.png");
 
     return 0;
 }
@@ -280,28 +281,25 @@ int Viewer::render_scalar_field_params()
     {
         update_height_field();
     }
+    ImGui::SliderInt("Scalar Field Dim", &m_hf_dim, 16.f, 1024.f);
+    ImGui::SliderInt("Output Dim", &m_output_dim, 16.f, 1024.f);
+    ImGui::SliderInt("Resolution", &m_resolution, (float)m_hf_dim, (float)m_hf_dim * 8);
     if (ImGui::CollapsingHeader("Perlin Noise"))
     {
-        ImGui::SliderInt2("Scalar Field Dim", &m_hf_dim[0], 16.f, 1024.f);
-        ImGui::InputInt2("Output Dim", &m_output_dim[0]);
-        if (ImGui::Button("Generate"))
-        {
-            update_height_field();
-            center_camera(m_height_map);
-        }
 
-        if (ImGui::SliderFloat("Hurst", &m_hurst, 0.01f, 5.0f))
-        {
-            update_height_field();
-        }
-        if (ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.f, 15.f))
-        {
-            update_height_field();
-        }
-        if (ImGui::SliderFloat("Base Scale", &m_base_scale, 0.001f, 1.f))
-        {
-            update_height_field();
-        }
+        ImGui::SliderFloat("Hurst", &m_hurst, 0.01f, 5.0f);
+        ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.f, 15.f);
+        ImGui::SliderFloat("Base Scale", &m_base_scale, 0.001f, 1.f);
+    }
+
+    if (ImGui::Button("Generate"))
+    {
+        update_height_field();
+    }
+
+    if (ImGui::Button("Center camera"))
+    {
+        center_camera(m_height_map);
     }
     return 0;
 }
@@ -418,7 +416,7 @@ int Viewer::render_ui()
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
     ImGui::GetWindowDrawList()->AddImage(
-        (void *)m_ImGUIFramebuffer.texture_id(),
+        (ImTextureID)(intptr_t)m_ImGUIFramebuffer.texture_id(),
         ImVec2(pos.x, pos.y),
         ImVec2(pos.x + window_width, pos.y + window_height),
         ImVec2(0, 1),
@@ -429,7 +427,7 @@ int Viewer::render_ui()
     if (m_show_ui)
     {
         ImGui::Begin("Map");
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_elevation, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_elevation, ImVec2(128, 128), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Elevation");
@@ -439,7 +437,7 @@ int Viewer::render_ui()
             m_overlay = OVERLAY_TEX::ELEVATION_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_gradient, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_gradient, ImVec2(128, 128), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Gradient");
@@ -449,7 +447,7 @@ int Viewer::render_ui()
             m_overlay = OVERLAY_TEX::GRADIENT_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_normal, ImVec2(m_hf_dim[0], m_hf_dim[1]));
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_normal, ImVec2(128, 128), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Normal");
@@ -459,7 +457,17 @@ int Viewer::render_ui()
             m_overlay = OVERLAY_TEX::NORMAL_TEX;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Clear overlay", ImVec2(m_hf_dim[0], m_hf_dim[1])))
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_slope, ImVec2(128, 128), {0, 1}, {1, 0});
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Slope");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::SLOPE_TEX;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear overlay", ImVec2(128, 128)))
         {
             m_overlay = OVERLAY_TEX::NONE_TEX;
         }
@@ -507,18 +515,14 @@ int Viewer::render_ui()
 
         ImGui::Begin("Statistiques");
 
-        if (ImGui::CollapsingHeader("Performances"))
-        {
-            auto [cpums, cpuus] = cpu_time();
-            auto [gpums, gpuus] = gpu_time();
-            ImGui::Text("fps : %.2f ", (1000.f / delta_time()));
-            ImGui::Text("cpu : %i ms %i us ", cpums, cpuus);
-            ImGui::Text("gpu : %i ms %i us", gpums, gpuus);
-            ImGui::Text("frame rate : %.2f ms", delta_time());
-        }
-        if (ImGui::CollapsingHeader("Geometry"))
-        {
-        }
+        ImGui::SeparatorText("Performances");
+        auto [cpums, cpuus] = cpu_time();
+        auto [gpums, gpuus] = gpu_time();
+        ImGui::Text("fps : %.2f ", (1000.f / delta_time()));
+        ImGui::Text("cpu : %i ms %i us ", cpums, cpuus);
+        ImGui::Text("gpu : %i ms %i us", gpums, gpuus);
+        ImGui::Text("frame rate : %.2f ms", delta_time());
+        ImGui::SeparatorText("Geometry");
         ImGui::End();
     }
 

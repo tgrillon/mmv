@@ -4,7 +4,7 @@
 
 #ifndef NOISEBASE_HPP
 #define NOISEBASE_HPP
-
+ 
 #include <random>
 
 class NoiseBase
