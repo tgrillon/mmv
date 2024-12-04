@@ -141,10 +141,44 @@ namespace mmv
 
     vec2 ScalarField::Laplacian(int i, int j) const
     {
-        assert(i > 0 && i < m_Nx - 1);
-        assert(j > 0 && j < m_Nz - 1);
+        float laplacian_x = 0.f;
+        if (i == 0)
+            laplacian_x = (Height(i + 2, j) - 2.f * Height(i + 1, j) + Height(i, j)) * 0.25f;
+        else if (i == m_Nx - 1)
+            laplacian_x = (Height(i, j) - 2.f * Height(i - 1, j) + Height(i - 2, j)) * 0.25f;
+        else
+            laplacian_x = (Height(i + 1, j) - 2.f * Height(i, j) + Height(i - 1, j)) * 0.25f;
 
-        return {(Height(i + 1, j) - 2.f * Height(i, j) + Height(i - 1, j)), (Height(i, j + 1) - 2.f * Height(i, j) + Height(i, j - 1)) * 0.5f};
+        float laplacian_y = 0.f;
+        if (j == 0)
+            laplacian_y = (Height(i, j + 2) - 2.f * Height(i, j + 1) + Height(i, j)) * 0.25f;
+        else if (j == m_Nx - 1)
+            laplacian_y = (Height(i, j) - 2.f * Height(i, j - 1) + Height(i, j - 2)) * 0.25f;
+        else
+            laplacian_y = (Height(i, j + 1) - 2.f * Height(i, j) + Height(i, j - 1)) * 0.25f;
+
+        return {laplacian_x, laplacian_y};
+    }
+
+    vec2 ScalarField::Laplacian(float x, float z) const
+    {
+        float laplacian_x = 0.f;
+        if (x == 0)
+            laplacian_x = (Height(x + 2, z) - 2.f * Height(x + 1, z) + Height(x, z)) * 0.25f;
+        else if (x == m_Nx - 1)
+            laplacian_x = (Height(x, z) - 2.f * Height(x - 1, z) + Height(x - 2, z)) * 0.25f;
+        else
+            laplacian_x = (Height(x + 1, z) - 2.f * Height(x, z) + Height(x - 1, z)) * 0.25f;
+
+        float laplacian_y = 0.f;
+        if (z == 0)
+            laplacian_y = (Height(x, z + 2) - 2.f * Height(x, z + 1) + Height(x, z)) * 0.25f;
+        else if (z == m_Nx - 1)
+            laplacian_y = (Height(x, z) - 2.f * Height(x, z - 1) + Height(x, z - 2)) * 0.25f;
+        else
+            laplacian_y = (Height(x, z + 1) - 2.f * Height(x, z) + Height(x, z - 1)) * 0.25f;
+
+        return {laplacian_x, laplacian_y};
     }
 
     int ScalarField::SaveHeightAsImage(const std::string &filename, int nx, int nz)
@@ -171,7 +205,7 @@ namespace mmv
         }
 
         write_image_data(image, fullpath.c_str());
-        utils::status("Image ", filename, " successfully saved in ./data/output");
+        utils::status("[Height] Image ", filename, " successfully saved in ./data/output");
 
         return 0;
     }
@@ -199,7 +233,35 @@ namespace mmv
         }
 
         write_image_data(image, fullpath.c_str());
-        utils::status("[SaveGradientAsImage] Image ", filename, " successfully saved in ./data/output");
+        utils::status("[Gradient] Image ", filename, " successfully saved in ./data/output");
+
+        return 0;
+    }
+
+    int ScalarField::SaveLaplacianAsImage(const std::string &filename, int nx, int nz)
+    {
+        nx = nx < 0 ? m_Nx : nx;
+        nz = nz < 0 ? m_Nz : nz;
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        ImageData image(nx, nz, 3);
+
+        for (int j = 0; j < nz; ++j)
+        {
+            float v = (float)j / (float)nz * (float)m_Nz;
+            for (int i = 0; i < nx; ++i)
+            {
+                float u = (float)i / (float)nx * (float)m_Nx;
+                vec2 laplacian = Laplacian(u, v);
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (laplacian.x + 1.f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = 0;
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, (laplacian.y + 1.f) * 0.5f * 255.f)));
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[Laplacian] Image ", filename, " successfully saved in ./data/output");
 
         return 0;
     }
@@ -358,6 +420,35 @@ namespace mmv
 
         write_image_data(image, fullpath.c_str());
         utils::status("[Slope] Image ", filename, " successfully saved in ./data/output");
+
+        return 0;
+    }
+
+    int HeightField::SaveShadingAsImage(const std::string &filename, const Vector &light_direction, int nx, int nz) const
+    {
+        nx = nx < 0 ? m_Nx : nx;
+        nz = nz < 0 ? m_Nz : nz;
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        ImageData image(nx, nz, 3);
+
+        for (int j = 0; j < nz; ++j)
+        {
+            float v = (float)j / (float)nz * (float)m_Nz;
+            for (int i = 0; i < nx; ++i)
+            {
+                float u = (float)i / (float)nx * (float)m_Nx;
+                Vector normal = Normal(u, v);
+                float cos_theta = std::max(0.f, dot(normalize(-light_direction), normal));
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, cos_theta * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, cos_theta * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<unsigned char>(std::max(0.f, std::min(255.f, cos_theta * 255.f)));
+            }
+        }
+
+        write_image_data(image, fullpath.c_str());
+        utils::status("[Shading] Image ", filename, " successfully saved in ./data/output");
 
         return 0;
     }

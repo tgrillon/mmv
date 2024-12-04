@@ -72,10 +72,14 @@ namespace mmv
         //! Compute laplacian at a point with position (i [col], j [row]).
         vec2 Laplacian(int i, int j) const;
 
+        vec2 Laplacian(float x, float z) const;
+
         //! Save the elevations of a scalarfield as a grayscale image. 
         int SaveHeightAsImage(const std::string& filename, int nx=-1, int nz=-1);
 
         int SaveGradientAsImage(const std::string& filename, int nx=-1, int nz=-1);
+
+        int SaveLaplacianAsImage(const std::string& filename, int nx=-1, int nz=-1);
         
         //! Save the elevations of a scalarfield as a text file containing each point coordinates. 
         int SaveHeightAsTxt(const std::string& filename, int nx=-1, int nz=-1);
@@ -96,7 +100,10 @@ namespace mmv
         Mesh Polygonize(int resolution) const; 
 
         int SaveNormalAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
+
         int SaveSlopeAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
+        
+        int SaveShadingAsImage(const std::string &filename, const Vector& light_direction, int nx = -1, int nz = -1) const;
 
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 

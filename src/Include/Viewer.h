@@ -116,29 +116,37 @@ private:
         NB_VBO
     };
 
+    Vector m_object_scale{1.f, 1.f, 1.f};
+
     GLuint m_buffers[VBO_TYPE::NB_VBO];
 
     //! Shaders
-    GLuint m_program_texture;
-    GLuint m_program_skybox;
-    GLuint m_program_points;
-    GLuint m_program_edges;
-    GLuint m_program_faces;
+    GLuint m_program_texture{0};
+    GLuint m_program_skybox{0};
+    GLuint m_program_points{0};
+    GLuint m_program_edges{0};
+    GLuint m_program_faces{0};
 
     //! Textures
-    GLuint m_tex_skybox;
-    GLuint m_tex_normal;
-    GLuint m_tex_gradient;
-    GLuint m_tex_elevation;
-    GLuint m_tex_slope;
+    GLuint m_tex_skybox{0};
+    GLuint m_tex_gradient{0};
+    GLuint m_tex_elevation{0};
+    GLuint m_tex_laplacian{0};
+    GLuint m_tex_normal{0};
+    GLuint m_tex_slope{0};
+    GLuint m_tex_shading{0};
+
+    Vector m_shading_dir{-1.f, -1.f, -1.f};
 
     enum OVERLAY_TEX
     {
         NONE_TEX=0,
         ELEVATION_TEX, 
-        NORMAL_TEX, 
         GRADIENT_TEX, 
+        LAPLACIAN_TEX,
+        NORMAL_TEX, 
         SLOPE_TEX, 
+        SHADING_TEX, 
         NB_TEX
     };
 

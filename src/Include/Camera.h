@@ -16,15 +16,15 @@ enum CameraMovement
 // Default camera values
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float MOVEMENT_SPEED = 15.0f;
-const float ROTATION_SPEED = 0.1f;
+const float MOVEMENT_SPEED = 25.0f;
+const float ROTATION_SPEED = 0.5f;
 const float ZOOM = 45.0f;
 
 // Free-fly camera
 class Camera
 {
 public:
-    Camera(Point position = {0.0f, 0.0f, 0.0f}, float w_width = 1.0f, float w_height = 1.0f, float fov = 45.0f, float yaw = YAW, float pitch = PITCH);
+    Camera(Point position = {0.0f, 0.0f, 0.0f}, float w_width = 1.0f, float w_height = 1.0f, float fov = 60.0f, float yaw = YAW, float pitch = PITCH);
 
     Transform view();
     Transform projection();
