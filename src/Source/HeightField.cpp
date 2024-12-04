@@ -284,10 +284,11 @@ namespace mmv
     {
         Mesh mesh(GL_TRIANGLE_STRIP);
 
-        float step = 1.f / float(n);
-        for (int j = 0; j < n; ++j)
+        float step = 1.f / float(n - 1);
+        for (int j = 0; j < n - 1; ++j)
         {
             float v = j * step * m_Nz;
+            float v2 = (j + 1) * step * m_Nz;
             for (int i = 0; i < n; ++i)
             {
                 float u = i * step * m_Nx;
@@ -295,9 +296,9 @@ namespace mmv
                 mesh.texcoord({u / (float)m_Nx, v / (float)m_Nz});
                 mesh.vertex(u, Height(u, v), v);
 
-                mesh.normal(Normal(u, v));
-                mesh.texcoord({u / (float)m_Nx, (v + 1) / (float)m_Nz});
-                mesh.vertex(u, Height(u, v + 1), v + 1);
+                mesh.normal(Normal(u, v2));
+                mesh.texcoord({u / (float)m_Nx, v2 / (float)m_Nz});
+                mesh.vertex(u, Height(u, v2), v2);
             }
             mesh.restart_strip();
         }
@@ -364,6 +365,12 @@ namespace mmv
     Vector HeightField::Normal(int i, int j) const
     {
         vec2 grad = Gradient(i, j);
+        return normalize({-grad.x, 1.f, -grad.y});
+    }
+
+    Vector HeightField::Normal(float x, float z) const
+    {
+        vec2 grad = Gradient(x, z);
         return normalize({-grad.x, 1.f, -grad.y});
     }
 

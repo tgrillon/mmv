@@ -16,7 +16,7 @@ int Viewer::init_any()
 
     glGenVertexArrays(VAO_TYPE::NB_VAO, m_vao);
 
-    m_tex_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox3.png", GL_RGBA);
+    m_tex_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox1.png", GL_RGBA);
 
     return 0;
 }
@@ -283,7 +283,7 @@ int Viewer::render_scalar_field_params()
     }
     ImGui::SliderInt("Scalar Field Dim", &m_hf_dim, 16.f, 1024.f);
     ImGui::SliderInt("Output Dim", &m_output_dim, 16.f, 1024.f);
-    ImGui::SliderInt("Resolution", &m_resolution, (float)m_hf_dim, (float)m_hf_dim * 8);
+    ImGui::SliderInt("Resolution", &m_resolution, m_hf_dim, m_hf_dim * 8);
     if (ImGui::CollapsingHeader("Perlin Noise"))
     {
 

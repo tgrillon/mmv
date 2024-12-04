@@ -101,6 +101,10 @@ namespace mmv
     protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
         Vector Normal(int i, int j) const;
+
+        //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
+        Vector Normal(float x, float z) const;
+
         //! Compute the slope at point of coordinates (i [col], j [row]) in the grid. 
         float Slope(int i, int j) const;
 
