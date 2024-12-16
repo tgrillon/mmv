@@ -376,9 +376,10 @@ namespace znoise
         return elevations;
     }
 
-    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale)
+    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale, int x_offset, int y_offset, unsigned int seed)
     {
         Simplex simplex;
+        simplex.SetSeed(seed);
         simplex.Shuffle(10);
 
         FBM fbm(simplex);
@@ -393,7 +394,7 @@ namespace znoise
         {
             for (int i = 0; i < width; ++i)
             {
-                float h = fbm.Get({(float)i, (float)j}, baseScale);
+                float h = fbm.Get({(float)i + x_offset, (float)j + y_offset}, baseScale);
                 auto value = static_cast<unsigned char>((h + 1.f) * 0.5f * 255.f);
 
                 elevations[j * width + i] = (h + 1.f) * 0.5f * scale;

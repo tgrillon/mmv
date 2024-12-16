@@ -72,5 +72,5 @@ namespace znoise
     
     std::vector<float> generate_hmf(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale, int x_offset = 0, int y_offset = 0, unsigned int seed = 0);
     
-    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale);
+    std::vector<float> generate_fbm(const std::string &filename, float scale, int width, int height, float hurst, float lacunarity, float baseScale, int x_offset = 0, int y_offset = 0, unsigned int seed = 0);
 } // namespace znoise

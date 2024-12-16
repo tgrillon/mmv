@@ -2,37 +2,40 @@ set(SOURCE_DIR "Source")
 set(INCLUDE_DIR "Include")
 set(TEST_DIR "Test")
 add_executable(${PROJECT_NAME} main.cpp 
-                               ${SOURCE_DIR}/Window.cpp
                                ${SOURCE_DIR}/App.cpp
+                               ${SOURCE_DIR}/Breaching.cpp
+                               ${SOURCE_DIR}/Buffer.cpp
                                ${SOURCE_DIR}/Camera.cpp
                                ${SOURCE_DIR}/CameraSystem.cpp
                                ${SOURCE_DIR}/Framebuffer.cpp
-                               ${SOURCE_DIR}/Viewer.cpp
-                               ${SOURCE_DIR}/HeightField.cpp
-                               ${SOURCE_DIR}/ZNoise.cpp
-                               ${SOURCE_DIR}/Timer.cpp
-                               ${SOURCE_DIR}/Buffer.cpp
-                               ${SOURCE_DIR}/Breaching.cpp
                                ${SOURCE_DIR}/gkitext.cpp
-                               ${SOURCE_DIR}/vecext.cpp
+                               ${SOURCE_DIR}/HeightField.cpp
+                               ${SOURCE_DIR}/ImageUtils.cpp
+                               ${SOURCE_DIR}/Timer.cpp
                                ${SOURCE_DIR}/pch.cpp
+                               ${SOURCE_DIR}/vecext.cpp
+                               ${SOURCE_DIR}/Viewer.cpp
+                               ${SOURCE_DIR}/Window.cpp
+                               ${SOURCE_DIR}/ZNoise.cpp
 
-                               ${INCLUDE_DIR}/Window.h
                                ${INCLUDE_DIR}/App.h
+                               ${INCLUDE_DIR}/Buffer.h
+                               ${INCLUDE_DIR}/Breaching.h
                                ${INCLUDE_DIR}/Camera.h
                                ${INCLUDE_DIR}/CameraSystem.h
                                ${INCLUDE_DIR}/Framebuffer.h
-                               ${INCLUDE_DIR}/Viewer.h
-                               ${INCLUDE_DIR}/HeightField.h
-                               ${INCLUDE_DIR}/ZNoise.h
-                               ${INCLUDE_DIR}/Timer.h
-                               ${INCLUDE_DIR}/Buffer.h
-                               ${INCLUDE_DIR}/Breaching.h
                                ${INCLUDE_DIR}/gkitext.h
-                               ${INCLUDE_DIR}/vecext.h
-                               ${INCLUDE_DIR}/Utils.h
+                               ${INCLUDE_DIR}/HeightField.h
+                               ${INCLUDE_DIR}/ImageUtils.h
+                               ${INCLUDE_DIR}/Timer.h
                                ${INCLUDE_DIR}/Memory.h
                                ${INCLUDE_DIR}/pch.h
+                               ${INCLUDE_DIR}/Type.h
+                               ${INCLUDE_DIR}/Utils.h
+                               ${INCLUDE_DIR}/vecext.h
+                               ${INCLUDE_DIR}/Viewer.h
+                               ${INCLUDE_DIR}/Window.h
+                               ${INCLUDE_DIR}/ZNoise.h
 
                                ${TEST_DIR}/HeightFieldTest.cpp
                                )

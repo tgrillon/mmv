@@ -6,112 +6,6 @@
 namespace mmv
 {
     /***********************************************************/
-    /************************* CLASS GRID **********************/
-    Array2::Array2(const std::vector<ScalarType> &elements, const vec2 &a, const vec2 &b, int nx, int ny) : Array2(elements, nx, ny)
-    {
-        m_A = a; m_B = b;
-    }
-
-    Array2::Array2(int nx, int ny, ScalarType v) : m_Nx(nx), m_Ny(ny), m_A(0, 0), m_B(nx, ny), m_Elements(nx * ny, v), m_Min(v), m_Max(v)
-    {
-    }
-
-    Array2::Array2(int dim) : Array2(dim, dim)
-    {
-    }
-
-    Array2::Array2(const std::vector<ScalarType> &elements, int nx, int ny) : m_Nx(nx), m_Ny(ny), m_A(0, 0), m_B(nx, ny), m_Elements(elements)
-    {
-        assert(nx * ny == elements.size());
-        m_Min = *std::min_element(m_Elements.begin(), m_Elements.end());
-        m_Max = *std::max_element(m_Elements.begin(), m_Elements.end());
-    }
-
-    Array2::Array2(const vec2 &a, const vec2 &b, int nx, int ny, ScalarType v) : Array2(nx, ny, v)
-    {
-        m_A = a; m_B = b;
-    }
-
-    ScalarType &Array2::operator()(IndexType i, IndexType j)
-    {
-        assert(j * m_Nx + i < m_Nx * m_Ny);
-        return m_Elements[j * m_Nx + i];
-    }
-
-    ScalarType &Array2::operator()(IndexType i)
-    {
-        assert(i < m_Nx * m_Ny);
-        return m_Elements[i];
-    }
-
-    ScalarType Array2::At(IndexType i, IndexType j) const
-    {
-        assert(i >= 0 && i < m_Nx);
-        assert(j >= 0 && j < m_Ny);
-
-        return m_Elements[j * m_Nx + i];
-    }
-
-    ScalarType Array2::At(IndexType i) const
-    {
-        assert(i < m_Nx * m_Ny);
-        return m_Elements[i];
-    }
-
-    ScalarType Array2::Normalize(IndexType i, IndexType j) const
-    {
-        return (m_Elements[j * m_Nx + i] - m_Min) / (m_Max - m_Min);
-    }
-
-    ScalarType Array2::Clamp(IndexType i, IndexType j, ScalarType l, ScalarType h) const
-    {
-        return std::min(h, std::max(l, m_Elements[j * m_Nx + i]));
-    }
-
-    int Array2::Nx() const
-    {
-        return m_Nx;
-    }
-
-    int Array2::Ny() const
-    {
-        return m_Ny;
-    }
-
-    vec2 Array2::A() const
-    {
-        return m_A;
-    }
-
-    vec2 Array2::B() const
-    {
-        return m_B;
-    }
-
-    ScalarType Array2::Min() const
-    {
-        return m_Min;
-    }
-
-    ScalarType Array2::Max() const
-    {
-        return *std::max_element(m_Elements.begin(), m_Elements.end());
-    }
-
-    void Array2::UpdateMinMax()
-    {
-        m_Min = *std::min_element(m_Elements.begin(), m_Elements.end());
-        m_Max = *std::max_element(m_Elements.begin(), m_Elements.end());
-    }
-
-    vec2 Array2::Diagonal() const
-    {
-        assert(m_Nx - 1 > 0);
-        assert(m_Ny - 1 > 0);
-        return {(m_B.x - m_A.x) / (m_Nx - 1), (m_B.y - m_A.y) / (m_Ny - 1)};
-    }
-
-    /***********************************************************/
     /********************* CLASS SCALAR_FIELD ******************/
 
     ScalarField::ScalarField() : Array2()
@@ -127,22 +21,22 @@ namespace mmv
     {
     }
 
-    ScalarField::ScalarField(const std::vector<ScalarType> &elevations, int nx, int ny) : Array2(elevations, nx, ny)
+    ScalarField::ScalarField(const std::vector<scalar_t> &elevations, int nx, int ny) : Array2(elevations, nx, ny)
     {
     }
 
-    ScalarField::ScalarField(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny) : Array2(elevations, a, b, nx, ny)
+    ScalarField::ScalarField(const std::vector<scalar_t> &elevations, const vec2 &a, const vec2 &b, int nx, int ny) : Array2(elevations, a, b, nx, ny)
     {
         assert(nx * ny == elevations.size());
         m_Diag = Diagonal();
     }
 
-    Ref<SF> ScalarField::Create(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny)
+    Ref<SF> ScalarField::Create(const std::vector<scalar_t> &elevations, const vec2 &a, const vec2 &b, int nx, int ny)
     {
         return create_ref<SF>(elevations, a, b, nx, ny);
     }
 
-    void ScalarField::Elevations(const std::vector<ScalarType> &elevations, int nx, int ny)
+    void ScalarField::Elevations(const std::vector<scalar_t> &elevations, int nx, int ny)
     {
         m_Elements.clear();
         m_Elements = elevations;
@@ -153,14 +47,14 @@ namespace mmv
             m_Ny = ny;
     }
 
-    Point ScalarField::Point3D(IndexType i, IndexType j) const
+    Point ScalarField::Point3D(index_t i, index_t j) const
     {
         return {m_A.x + m_Diag.x * i, m_A.y + m_Diag.y * j, Height(i, j)};
     }
 
-    vec2 ScalarField::Gradient(IndexType i, IndexType j) const
+    vec2 ScalarField::Gradient(index_t i, index_t j) const
     {
-        ScalarType grad_x = 0.f;
+        scalar_t grad_x = 0.f;
         if (i == 0)
             grad_x = (Height(i + 1, j) - Height(i, j)) * 0.5f;
         else if (i == m_Nx - 1)
@@ -168,7 +62,7 @@ namespace mmv
         else
             grad_x = (Height(i + 1, j) - Height(i - 1, j)) * 0.5f;
 
-        ScalarType grad_y = 0.f;
+        scalar_t grad_y = 0.f;
         if (j == 0)
             grad_y = (Height(i, j + 1) - Height(i, j)) * 0.5f;
         else if (j == m_Ny - 1)
@@ -179,20 +73,20 @@ namespace mmv
         return {grad_x, grad_y};
     }
 
-    vec2 ScalarField::Gradient(ScalarType x, ScalarType y) const
+    vec2 ScalarField::Gradient(scalar_t x, scalar_t y) const
     {
-        ScalarType grad_x = 0.f;
+        scalar_t grad_x = 0.f;
         if (x < 1.f)
             grad_x = (Height(x + 1, y) - Height(x, y)) * 0.5f;
-        else if (x > ScalarType(m_Nx - 2))
+        else if (x > scalar_t(m_Nx - 2))
             grad_x = (Height(x, y) - Height(x - 1, y)) * 0.5f;
         else
             grad_x = (Height(x + 1, y) - Height(x - 1, y)) * 0.5f;
 
-        ScalarType grad_y = 0.f;
+        scalar_t grad_y = 0.f;
         if (y < 1.f)
             grad_y = (Height(x, y + 1) - Height(x, y)) * 0.5f;
-        else if (y > ScalarType(m_Ny - 2))
+        else if (y > scalar_t(m_Ny - 2))
             grad_y = (Height(x, y) - Height(x, y - 1)) * 0.5f;
         else
             grad_y = (Height(x, y + 1) - Height(x, y - 1)) * 0.5f;
@@ -200,9 +94,9 @@ namespace mmv
         return {grad_x, grad_y};
     }
 
-    ScalarType ScalarField::Laplacian(IndexType i, IndexType j) const
+    scalar_t ScalarField::Laplacian(index_t i, index_t j) const
     {
-        ScalarType laplacian_x = 0.f;
+        scalar_t laplacian_x = 0.f;
         if (i == 0)
             laplacian_x = (Height(i + 2, j) - 2.f * Height(i + 1, j) + Height(i, j));
         else if (i == m_Nx - 1)
@@ -210,7 +104,7 @@ namespace mmv
         else
             laplacian_x = (Height(i + 1, j) - 2.f * Height(i, j) + Height(i - 1, j));
 
-        ScalarType laplacian_y = 0.f;
+        scalar_t laplacian_y = 0.f;
         if (j == 0)
             laplacian_y = (Height(i, j + 2) - 2.f * Height(i, j + 1) + Height(i, j));
         else if (j == m_Ny - 1)
@@ -221,20 +115,20 @@ namespace mmv
         return laplacian_x + laplacian_y;
     }
 
-    ScalarType ScalarField::Laplacian(ScalarType x, ScalarType y) const
+    scalar_t ScalarField::Laplacian(scalar_t x, scalar_t y) const
     {
-        ScalarType laplacian_x = 0.f;
+        scalar_t laplacian_x = 0.f;
         if (x < 1.f)
             laplacian_x = (Height(x + 2, y) - 2.f * Height(x + 1, y) + Height(x, y));
-        else if (x > ScalarType(m_Nx - 2))
+        else if (x > scalar_t(m_Nx - 2))
             laplacian_x = (Height(x, y) - 2.f * Height(x - 1, y) + Height(x - 2, y));
         else
             laplacian_x = (Height(x + 1, y) - 2.f * Height(x, y) + Height(x - 1, y));
 
-        ScalarType laplacian_y = 0.f;
+        scalar_t laplacian_y = 0.f;
         if (y < 1.f)
             laplacian_y = (Height(x, y + 2) - 2.f * Height(x, y + 1) + Height(x, y));
-        else if (y > ScalarType(m_Ny - 2))
+        else if (y > scalar_t(m_Ny - 2))
             laplacian_y = (Height(x, y) - 2.f * Height(x, y - 1) + Height(x, y - 2));
         else
             laplacian_y = (Height(x, y + 1) - 2.f * Height(x, y) + Height(x, y - 1));
@@ -249,16 +143,18 @@ namespace mmv
 
         std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
 
+        UpdateMinMax();
+
         ImageData image(nx, ny, 3);
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
-                ScalarType h = Height({u, v});
-                auto value = static_cast<PixelType>(h * 255.f);
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
+                // scalar_t h = Height({u, v});
+                auto value = static_cast<pixel_t>(Normalize(u, v) * 255);
                 image.pixels[(j * nx + i) * 3 + 0] = value;
                 image.pixels[(j * nx + i) * 3 + 1] = value;
                 image.pixels[(j * nx + i) * 3 + 2] = value;
@@ -287,10 +183,10 @@ namespace mmv
         grads.reserve(nx * ny);
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 vec2 grad = Gradient(u, v);
                 grads.emplace_back(grad.x, grad.y);
                 min.x = std::min(min.x, grad.x);
@@ -305,8 +201,8 @@ namespace mmv
         {
             for (int i = 0; i < nx; ++i)
             {
-                image.pixels[(j * nx + i) * 3 + 0] = static_cast<PixelType>((grads[j * nx + i].x - min.x) / (max.x - min.x) * 255.f);
-                image.pixels[(j * nx + i) * 3 + 1] = static_cast<PixelType>((grads[j * nx + i].y - min.y) / (max.y - min.y) * 255.f);
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>((grads[j * nx + i].x - min.x) / (max.x - min.x) * 255.f);
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>((grads[j * nx + i].y - min.y) / (max.y - min.y) * 255.f);
                 image.pixels[(j * nx + i) * 3 + 2] = 0;
             }
         }
@@ -331,10 +227,10 @@ namespace mmv
         Array2 laplacians(nx, ny);
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 laplacians(i, j) = Laplacian(u, v);
             }
         }
@@ -354,25 +250,25 @@ namespace mmv
             return -1;
         }
 
-        ScalarType nxf = ScalarType(nx < 0 ? m_Nx : nx);
-        ScalarType nzf = ScalarType(ny < 0 ? m_Ny : ny);
+        scalar_t nxf = scalar_t(nx < 0 ? m_Nx : nx);
+        scalar_t nzf = scalar_t(ny < 0 ? m_Ny : ny);
 
         std::ofstream file(std::string(DATA_DIR) + "/output/" + filename);
 
         file << nx * ny << '\n';
 
-        ScalarType min = std::abs(Min()), max = std::abs(Max());
+        scalar_t min = std::abs(Min()), max = std::abs(Max());
 
-        ScalarType s = 255.f / max;
+        scalar_t s = 255.f / max;
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType njz = j / nzf * m_Ny;
+            scalar_t njz = j / nzf * m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType nix = i / nxf * m_Nx;
-                ScalarType h = Height({nix, njz});
-                ScalarType y = static_cast<PixelType>(std::max(0.f, std::min(255.f, (h + min) * s)));
-                file << (ScalarType)i << ' ' << (ScalarType)j << ' ' << y << '\n';
+                scalar_t nix = i / nxf * m_Nx;
+                scalar_t h = Height({nix, njz});
+                scalar_t y = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (h + min) * s)));
+                file << (scalar_t)i << ' ' << (scalar_t)j << ' ' << y << '\n';
             }
         }
 
@@ -391,11 +287,11 @@ namespace mmv
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
-                PixelType value = static_cast<PixelType>(values.Normalize(i, j) * 255.f);
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
+                pixel_t value = static_cast<pixel_t>(values.Normalize(i, j) * 255.f);
                 image.pixels[(j * nx + i) * 3 + 0] = value;
                 image.pixels[(j * nx + i) * 3 + 1] = value;
                 image.pixels[(j * nx + i) * 3 + 2] = value;
@@ -413,29 +309,29 @@ namespace mmv
         return 0;
     }
 
-    ScalarType ScalarField::Height(IndexType i, IndexType j) const
+    scalar_t ScalarField::Height(index_t i, index_t j) const
     {
         if (i >= m_Nx || j >= m_Ny)
             return 0.f;
         return (*this).At(i, j);
     }
 
-    ScalarType ScalarField::Height(ScalarType x, ScalarType y) const
+    scalar_t ScalarField::Height(scalar_t x, scalar_t y) const
     {
-        ScalarType fi = (x - m_A.x) / m_Diag.x;
+        scalar_t fi = (x - m_A.x) / m_Diag.x;
         int i = int(fi);
 
-        ScalarType fj = (y - m_A.y) / m_Diag.y;
+        scalar_t fj = (y - m_A.y) / m_Diag.y;
         int j = int(fj);
 
-        ScalarType u = fi - i;
-        ScalarType v = fj - j;
+        scalar_t u = fi - i;
+        scalar_t v = fj - j;
 
         //! Bilinear Interpolation
         return (1 - u) * (1 - v) * Height(i, j) + (1 - u) * v * Height(i, j + 1) + u * (1 - v) * Height(i + 1, j) + u * v * Height(i + 1, j + 1);
     }
 
-    ScalarType ScalarField::Height(const vec2 &point) const
+    scalar_t ScalarField::Height(const vec2 &point) const
     {
         return Height(point.x, point.y);
     }
@@ -452,15 +348,15 @@ namespace mmv
     {
     }
 
-    HeightField::HeightField(const std::vector<ScalarType> &elevations, int nx, int ny) : ScalarField(elevations, nx, ny)
+    HeightField::HeightField(const std::vector<scalar_t> &elevations, int nx, int ny) : ScalarField(elevations, nx, ny)
     {
     }
 
-    HeightField::HeightField(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny) : ScalarField(elevations, a, b, nx, ny)
+    HeightField::HeightField(const std::vector<scalar_t> &elevations, const vec2 &a, const vec2 &b, int nx, int ny) : ScalarField(elevations, a, b, nx, ny)
     {
     }
 
-    Ref<HeightField> HeightField::Create(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny)
+    Ref<HeightField> HeightField::Create(const std::vector<scalar_t> &elevations, const vec2 &a, const vec2 &b, int nx, int ny)
     {
         return create_ref<HF>(elevations, a, b, nx, ny);
     }
@@ -469,16 +365,16 @@ namespace mmv
     {
         Mesh mesh(GL_TRIANGLES);
 
-        ScalarType step = 1.f / ScalarType(n - 1);
+        scalar_t step = 1.f / scalar_t(n - 1);
         for (int j = 0; j < n; ++j)
         {
-            ScalarType v = j * step * m_Ny;
+            scalar_t v = j * step * m_Ny;
             for (int i = 0; i < n; ++i)
             {
-                ScalarType u = i * step * m_Nx;
+                scalar_t u = i * step * m_Nx;
 
                 mesh.normal(Normal(u, v));
-                mesh.texcoord({u / (ScalarType)m_Nx, v / (ScalarType)m_Ny});
+                mesh.texcoord({u / (scalar_t)m_Nx, v / (scalar_t)m_Ny});
                 mesh.vertex(u, Height(u, v), v);
 
                 if (i > 0 && j > 0)
@@ -506,14 +402,14 @@ namespace mmv
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 vec3 normal = Normal(u, v);
-                image.pixels[(j * nx + i) * 3 + 0] = static_cast<PixelType>(std::max(0.f, std::min(255.f, (normal.x + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 2] = static_cast<PixelType>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 1] = static_cast<PixelType>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.x + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
             }
         }
 
@@ -536,10 +432,10 @@ namespace mmv
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 slope(i, j) = Slope(u, v);
             }
         }
@@ -560,10 +456,10 @@ namespace mmv
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 avgslope(i, j) = AverageSlope(u, v);
             }
         }
@@ -586,13 +482,13 @@ namespace mmv
 
         for (int j = 0; j < ny; ++j)
         {
-            ScalarType v = (ScalarType)j / (ScalarType)ny * (ScalarType)m_Ny;
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
-                ScalarType u = (ScalarType)i / (ScalarType)nx * (ScalarType)m_Nx;
+                scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 Vector normal = Normal(u, v);
-                ScalarType cos_theta = std::max(0.f, dot(normalize(-light_direction), normal));
-                PixelType value = static_cast<PixelType>(cos_theta * 255.f);
+                scalar_t cos_theta = std::max(0.f, dot(normalize(-light_direction), normal));
+                pixel_t value = static_cast<pixel_t>(cos_theta * 255.f);
                 image.pixels[(j * nx + i) * 3 + 0] = value;
                 image.pixels[(j * nx + i) * 3 + 1] = value;
                 image.pixels[(j * nx + i) * 3 + 2] = value;
@@ -613,17 +509,53 @@ namespace mmv
         return write_mesh(Polygonize(resolution), filename.c_str());
     }
 
-    bool comp(ScalarType a, ScalarType b) { return a > b; }
+    bool comp(scalar_t a, scalar_t b) { return a > b; }
 
     /**
      * |v00|v10|v20|---|
      * |v01|idx|v21|---|
      * |v02|v12|v22|---|
      */
-    int HeightField::StreamArea(const std::string &filename) const
+    int HeightField::ExportStreamArea(const std::string &filename) const
+    {
+        Array2 A = StreamArea();
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        ImageData image(m_Nx, m_Ny, 3);
+
+        for (int j = 0; j < A.Ny(); ++j)
+        {
+            for (int i = 0; i < A.Nx(); ++i)
+            {
+                A(i, j) = std::sqrt(A(i, j));
+            }
+        }
+
+        A.UpdateMinMax();
+
+        for (int j = 0; j < m_Ny; ++j)
+        {
+            for (int i = 0; i < m_Nx; ++i)
+            {
+                image.pixels[(j * m_Nx + i) * 3 + 0] = 0;
+                image.pixels[(j * m_Nx + i) * 3 + 1] = 0;
+                image.pixels[(j * m_Nx + i) * 3 + 2] = static_cast<pixel_t>(A.Normalize(i, j) * 255.f);
+            }
+        }
+
+        if (write_image_data(image, fullpath.c_str()) < 0)
+            return -1;
+
+#ifndef NDEBUG
+        utils::status("[Stream area] Image ", filename, " successfully saved in ./data/output");
+#endif
+        return 0;
+    }
+
+    Array2<scalar_t> HeightField::StreamArea() const
     {
         //! On trie les hauteurs dans l'ordre décroissant et on les stocke dans une queue
-        std::priority_queue<std::pair<ScalarType, int>> Q;
+        std::priority_queue<std::pair<scalar_t, int>> Q;
         for (int i = 0; auto e : m_Elements)
         {
             Q.emplace(e, i);
@@ -640,109 +572,63 @@ namespace mmv
             int J = (idx - I) / m_Nx;
 
             vec2 grad = -Gradient(I, J);
-            ScalarType u = int(std::round(grad.x));
-            ScalarType v = int(std::round(grad.y));
+            scalar_t u = int(std::round(grad.x));
+            scalar_t v = int(std::round(grad.y));
 
-            /*if (d == 0.f)
-            {
-                int startI = I - 1 < 0 ? 0 : I - 1;
-                int endI = I + 1 > m_Nx - 1 ? m_Nx - 1 : I + 1;
-                int startJ = J - 1 < 0 ? 0 : J - 1;
-                int endJ = J + 1 > m_Ny - 1 ? m_Ny - 1 : J + 1;
-                for (int j = startJ; j < endJ; ++j)
-                {
-                    for (int i = startI; i < endI; ++i)
-                    {
-                        if (i != I || j != J)
-                        {
-                            A(i, j) += A(I, J);
-                            if (abs(I) + abs(J) == 2)
-                                A(i, j) /= sqrt(2);
-                        }
-                    }
-                }
-            }
-            else */
             if (I + u >= 0 && I + u < m_Nx && J + v >= 0 && J + v < m_Ny)
             {
-                ScalarType d = sqrt(abs(u) + abs(v));
+                scalar_t d = sqrt(abs(u) + abs(v));
                 if (d != 0.f)
                     A(I + u, J + v) += A(I, J) / d;
             }
-
-            // for (int j = startJ; j < endJ; ++j)
-            // {
-            //     for (int i = startI; i < endI; ++i)
-            //     {
-            //         if (i != I || j != J)
-            //         {
-
-            //         }
-            //     }
-            // }
         }
 
-        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+        return A;
+    }
 
-        ImageData image(m_Nx, m_Ny, 3);
+    void HeightField::StreamPower()
+    {
+        const Array2 &A = StreamArea();
 
-        for (int j = 0; j < A.Ny(); ++j)
-        {
-            for (int i = 0; i < A.Nx(); ++i)
-            {
-                A(i, j) = std::log2f(A(i, j));
-            }
-        }
-        A.UpdateMinMax();
-
+        scalar_t k = 1e-1;
         for (int j = 0; j < m_Ny; ++j)
         {
             for (int i = 0; i < m_Nx; ++i)
             {
-                image.pixels[(j * m_Nx + i) * 3 + 0] = 0;
-                image.pixels[(j * m_Nx + i) * 3 + 1] = 0;
-                image.pixels[(j * m_Nx + i) * 3 + 2] = static_cast<PixelType>(A.Normalize(i, j) * 255.f);
+                operator()(i, j) -= k * std::pow(A.At(i, j), 0.5) * Slope(i, j);
             }
         }
-
-        if (write_image_data(image, fullpath.c_str()) < 0)
-            return -1;
-
-#ifndef NDEBUG
-        utils::status("[Stream area] Image ", filename, " successfully saved in ./data/output");
-#endif
-        return 0;
     }
 
-    Vector HeightField::Normal(IndexType i, IndexType j) const
+    Vector HeightField::Normal(index_t i, index_t j) const
     {
         vec2 grad = Gradient(i, j);
         return normalize({-grad.x, 1.f, -grad.y});
     }
 
-    Vector HeightField::Normal(ScalarType x, ScalarType y) const
+    Vector HeightField::Normal(scalar_t x, scalar_t y) const
     {
         vec2 grad = Gradient(x, y);
         return normalize({-grad.x, 1.f, -grad.y});
     }
 
-    ScalarType HeightField::Slope(IndexType i, IndexType j) const
+    scalar_t HeightField::Slope(index_t i, index_t j) const
     {
         return length(Gradient(i, j));
     }
 
-    ScalarType HeightField::Slope(ScalarType x, ScalarType y) const
+    scalar_t HeightField::Slope(scalar_t x, scalar_t y) const
     {
         return length(Gradient(x, y));
     }
 
-    ScalarType HeightField::AverageSlope(IndexType i, IndexType j) const
+    scalar_t HeightField::AverageSlope(index_t i, index_t j) const
     {
         assert(i >= 0.f && i <= m_Nx);
         assert(j >= 0.f && j <= m_Ny);
 
         int count = 1;
-        ScalarType sum_slope = Slope(i, j);
+        scalar_t sum_slope = Slope(i, j);
         if (i - 1 >= 0 && j - 1 >= 0)
         {
             sum_slope += Slope(i - 1, j - 1);
@@ -773,7 +659,7 @@ namespace mmv
             count++;
         }
 
-        if (i + 1 < (ScalarType)m_Nx)
+        if (i + 1 < (scalar_t)m_Nx)
         {
             sum_slope += Slope(i + 1, j);
             count++;
@@ -785,22 +671,22 @@ namespace mmv
             count++;
         }
 
-        if (j + 1 < (ScalarType)m_Ny)
+        if (j + 1 < (scalar_t)m_Ny)
         {
             sum_slope += Slope(i, j + 1);
             count++;
         }
 
-        return sum_slope / (ScalarType)count;
+        return sum_slope / (scalar_t)count;
     }
 
-    ScalarType HeightField::AverageSlope(ScalarType x, ScalarType y) const
+    scalar_t HeightField::AverageSlope(scalar_t x, scalar_t y) const
     {
-        assert(x >= 0.f && x <= (ScalarType)m_Nx);
-        assert(y >= 0.f && y <= (ScalarType)m_Ny);
+        assert(x >= 0.f && x <= (scalar_t)m_Nx);
+        assert(y >= 0.f && y <= (scalar_t)m_Ny);
 
         int count = 1;
-        ScalarType sum_slope = Slope(x, y);
+        scalar_t sum_slope = Slope(x, y);
         if (x - 1 >= 0 && y - 1 >= 0)
         {
             sum_slope += Slope(x - 1, y - 1);
@@ -831,7 +717,7 @@ namespace mmv
             count++;
         }
 
-        if (x + 1 < (ScalarType)m_Nx)
+        if (x + 1 < (scalar_t)m_Nx)
         {
             sum_slope += Slope(x + 1, y);
             count++;
@@ -843,12 +729,12 @@ namespace mmv
             count++;
         }
 
-        if (y + 1 < (ScalarType)m_Ny)
+        if (y + 1 < (scalar_t)m_Ny)
         {
             sum_slope += Slope(x, y + 1);
             count++;
         }
 
-        return sum_slope / (ScalarType)count;
+        return sum_slope / (scalar_t)count;
     }
 } // namespace mmv
