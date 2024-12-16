@@ -201,7 +201,7 @@ bool App::event_imgui()
 
 void App::center_camera(const Mesh &mesh)
 {
-    Point pmin, pmax; 
+    Point pmin, pmax;
     mesh.bounds(pmin, pmax);
     m_cs.orbiter().lookat(pmin, pmax);
 }

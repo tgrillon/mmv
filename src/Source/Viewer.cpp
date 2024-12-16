@@ -1,22 +1,27 @@
 #include "Viewer.h"
 
+#include "ZNoise.h"
 #include "Utils.h"
 #include "Buffer.h"
 #include "gkitext.h"
 
-Viewer::Viewer() : App(1024, 640), m_ImGUIFramebuffer(window_width(), window_height()), m_ww(window_width()), m_wh(window_height())
+Viewer::Viewer() : App(1024, 640), m_ImGUIFramebuffer(window_width(), window_height()), m_framebuffer_width(window_width()), m_framebuffer_height(window_height())
 {
 }
 
 int Viewer::init_any()
 {
+    m_cs.fov() = 70.f;
+
+    load_params();
+
     init_shaders();
 
     init_demo_scalar_field();
 
     glGenVertexArrays(VAO_TYPE::NB_VAO, m_vao);
 
-    m_tex_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox1.png", GL_RGBA);
+    m_tex_skybox = read_cubemap(0, std::string(DATA_DIR) + "/skybox7.png", GL_RGBA);
 
     return 0;
 }
@@ -73,28 +78,43 @@ int Viewer::init_demo_scalar_field()
 {
     //! Generate height map using Perlin noise
 
-    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale);
+    // m_elevations.resize(m_hf_dim * m_hf_dim);
+    // for (int j = 0; j < m_hf_dim; ++j)
+    // {
+    //     for (int i = 0; i < m_hf_dim; ++i)
+    //     {
+    //         m_elevations[j * m_hf_dim + i] = std::cos(i / 4.f) * std::sin(j / 4.f) * 20.f;
+    //     }
+    // }
+
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_seed);
     m_hf_a = {0.f, 0.f};
     m_hf_b = {(float)m_hf_dim, (float)m_hf_dim};
 
     m_hf = mmv::HF::Create(m_elevations, m_hf_a, m_hf_b, m_hf_dim, m_hf_dim);
-    m_height_map = m_hf->Polygonize(m_resolution);
 
+    m_height_map = m_hf->Polygonize(m_resolution);
     m_height_map.bounds(pmin, pmax);
     m_cs.orbiter().lookat(pmin, pmax);
 
-    m_hf->SaveGradientAsImage("gradient.png", m_output_dim, m_output_dim);
-    m_hf->SaveLaplacianAsImage("laplacian.png", m_output_dim, m_output_dim);
-    m_hf->SaveNormalAsImage("normal.png", m_output_dim, m_output_dim);
-    m_hf->SaveSlopeAsImage("slope.png", m_output_dim, m_output_dim);
-    m_hf->SaveShadingAsImage("shading.png", m_shading_dir, m_output_dim, m_output_dim);
+    m_hf->ExportGradient("gradient.png", m_output_dim, m_output_dim);
+    m_hf->ExportLaplacian("laplacian.png", m_output_dim, m_output_dim);
+    m_hf->ExportNormal("normal.png", m_output_dim, m_output_dim);
+    m_hf->ExportSlope("slope.png", m_output_dim, m_output_dim);
+    m_hf->ExportAverageSlope("avgslope.png", m_output_dim, m_output_dim);
+    m_hf->ExportShading("shading.png", m_shading_dir, m_output_dim, m_output_dim);
+    m_hf->StreamArea("streamarea.png");
 
     m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
     m_tex_gradient = read_texture(0, std::string(DATA_DIR) + "/output/gradient.png");
     m_tex_laplacian = read_texture(0, std::string(DATA_DIR) + "/output/laplacian.png");
     m_tex_normal = read_texture(0, std::string(DATA_DIR) + "/output/normal.png");
     m_tex_slope = read_texture(0, std::string(DATA_DIR) + "/output/slope.png");
+    m_tex_avg_slope = read_texture(0, std::string(DATA_DIR) + "/output/avgslope.png");
     m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
+    m_tex_stream_area = read_texture(0, std::string(DATA_DIR) + "/output/streamarea.png");
+
+    save_params();
 
     return 0;
 }
@@ -142,6 +162,7 @@ int Viewer::quit_any()
     glDeleteTextures(1, &m_tex_laplacian);
     glDeleteTextures(1, &m_tex_normal);
     glDeleteTextures(1, &m_tex_slope);
+    glDeleteTextures(1, &m_tex_avg_slope);
     glDeleteTextures(1, &m_tex_shading);
 
     glDeleteVertexArrays(VAO_TYPE::NB_VAO, m_vao);
@@ -205,8 +226,14 @@ int Viewer::render_any()
             case OVERLAY_TEX::SLOPE_TEX:
                 program_use_texture(m_program_texture, "u_Texture", 0, m_tex_slope);
                 break;
+            case OVERLAY_TEX::AVG_SLOPE_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_avg_slope);
+                break;
             case OVERLAY_TEX::SHADING_TEX:
                 program_use_texture(m_program_texture, "u_Texture", 0, m_tex_shading);
+                break;
+            case OVERLAY_TEX::STREAM_AREA_TEX:
+                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_stream_area);
                 break;
             }
 
@@ -272,22 +299,33 @@ int Viewer::render_any()
 
 int Viewer::update_height_field()
 {
-    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale);
+    // for (int j = 0; j < m_hf_dim; ++j)
+    // {
+    //     for (int i = 0; i < m_hf_dim; ++i)
+    //     {
+    //         m_elevations[j * m_hf_dim + i] = std::cos((float)i / 8.f) * m_scale;
+    //     }
+    // }
+    m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
 
     m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
     m_height_map = m_hf->Polygonize(m_resolution);
-    m_hf->SaveGradientAsImage("gradient.png", m_output_dim, m_output_dim);
-    m_hf->SaveLaplacianAsImage("laplacian.png", m_output_dim, m_output_dim);
-    m_hf->SaveNormalAsImage("normal.png", m_output_dim, m_output_dim);
-    m_hf->SaveSlopeAsImage("slope.png", m_output_dim, m_output_dim);
-    m_hf->SaveShadingAsImage("shading.png", m_shading_dir, m_output_dim, m_output_dim);
+    m_hf->ExportGradient("gradient.png", m_output_dim, m_output_dim);
+    m_hf->ExportLaplacian("laplacian.png", m_output_dim, m_output_dim);
+    m_hf->ExportNormal("normal.png", m_output_dim, m_output_dim);
+    m_hf->ExportSlope("slope.png", m_output_dim, m_output_dim);
+    m_hf->ExportAverageSlope("avgslope.png", m_output_dim, m_output_dim);
+    m_hf->ExportShading("shading.png", m_shading_dir, m_output_dim, m_output_dim);
+    m_hf->StreamArea("streamarea.png");
 
     m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
     m_tex_gradient = read_texture(0, std::string(DATA_DIR) + "/output/gradient.png");
     m_tex_laplacian = read_texture(0, std::string(DATA_DIR) + "/output/laplacian.png");
     m_tex_normal = read_texture(0, std::string(DATA_DIR) + "/output/normal.png");
     m_tex_slope = read_texture(0, std::string(DATA_DIR) + "/output/slope.png");
+    m_tex_avg_slope = read_texture(0, std::string(DATA_DIR) + "/output/avgslope.png");
     m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
+    m_tex_stream_area = read_texture(0, std::string(DATA_DIR) + "/output/streamarea.png");
 
     return 0;
 }
@@ -302,11 +340,23 @@ int Viewer::render_scalar_field_params()
     {
         ImGui::SliderFloat("Hurst", &m_hurst, 0.01f, 5.0f);
         ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.f, 15.f);
+        if (ImGui::InputInt("Seed", &m_seed))
+        {
+            update_height_field();
+        }
+        if (ImGui::SliderInt2("Offset XY", &m_offset[0], 0, 2048))
+        {
+            update_height_field();
+        }
         ImGui::SliderFloat("Base Scale", &m_base_scale, 0.001f, 1.f);
     }
 
     ImGui::SliderFloat3("Model Scale", &m_object_scale.x, 1.f, 100.f);
-    ImGui::SliderFloat3("Shading Direction", &m_shading_dir.x, -1.f, 1.f);
+    if (ImGui::SliderFloat3("Shading Direction", &m_shading_dir.x, -1.f, 1.f))
+    {
+        m_hf->ExportShading("shading.png", m_shading_dir, m_output_dim, m_output_dim);
+        m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
+    }
 
     if (ImGui::Button("Generate"))
     {
@@ -319,8 +369,86 @@ int Viewer::render_scalar_field_params()
         pmin = {pmin.x * m_object_scale.x, pmin.y * m_object_scale.y, pmin.z * m_object_scale.z};
         pmax = {pmax.x * m_object_scale.x, pmax.y * m_object_scale.y, pmax.z * m_object_scale.z};
         m_cs.orbiter().lookat(pmin, pmax);
-        // center_camera(m_height_map);
     }
+
+    ImGui::SeparatorText("Export HF");
+    ImGui::InputTextWithHint("Filename (OBJ)", "my_hf", &m_filename);
+    if (ImGui::Button("Export"))
+    {
+        m_hf->ExportObj(m_filename, m_resolution);
+    }
+
+    return 0;
+}
+
+int Viewer::save_params()
+{ 
+    std::ofstream file(std::string(CMAKE_SOURCE_DIR) + "/viewer_param.txt");
+    
+    file << m_cs.fov() << ' ' << m_cs.freefly().movement_speed() << ' ' << m_cs.freefly().rotation_speed() << '\n';
+    file << m_cs.freefly().position().x << ' ' << m_cs.freefly().position().y << ' ' << m_cs.freefly().position().z << '\n';
+    
+    file << m_show_faces << ' ' << m_show_edges << ' ' << m_show_points << ' ';
+    file << m_size_edge << ' ' << m_size_point << '\n';
+
+    file << m_show_style_editor << ' ' << m_show_ui << ' ' << m_dark_theme << ' ' << m_show_skybox << '\n';
+
+    file << m_clear_color[0] << ' ' << m_clear_color[1] << ' ' << m_clear_color[2] << '\n';
+    file << m_color_point[0] << ' ' << m_color_point[1] << ' ' << m_color_point[2] << ' ' << m_color_point[3] << '\n';
+    file << m_color_edge[0] << ' ' << m_color_edge[1] << ' ' << m_color_edge[2] << ' ' << m_color_edge[3] << '\n';
+
+    //! HF
+    file << m_scale << ' ' << m_resolution << ' ' << m_hf_dim << ' ' << m_output_dim << '\n';
+    file << m_object_scale.x << ' ' << m_object_scale.y << ' ' << m_object_scale.z << '\n';
+
+    //! Noise
+    file << m_hurst << ' ' << m_lacunarity << ' ' << m_base_scale << ' ' << m_offset[0] << ' ' << m_offset[1] << ' ' << m_seed << '\n';
+
+    file << m_shading_dir.x << ' ' << m_shading_dir.y << ' ' << m_shading_dir.z << '\n';
+
+    file << m_overlay << '\n'; 
+
+    file.close();
+    return 0;
+}
+
+int Viewer::load_params()
+{
+    std::ifstream file(std::string(CMAKE_SOURCE_DIR) + "/viewer_param.txt");
+    if (!file.is_open())
+    {
+        utils::error("File viewer_param.txt doesn't exists");
+        return -1;
+    }
+
+    file >> m_cs.fov() >> m_cs.freefly().movement_speed() >> m_cs.freefly().rotation_speed();
+    file >> m_cs.freefly().position().x >> m_cs.freefly().position().y >> m_cs.freefly().position().z;
+
+
+    file >> m_show_faces >> m_show_edges >> m_show_points;
+    file >> m_size_edge >> m_size_point;
+
+    file >> m_show_style_editor >> m_show_ui >> m_dark_theme >> m_show_skybox;
+
+    file >> m_clear_color[0] >> m_clear_color[1] >> m_clear_color[2];
+    file >> m_color_point[0] >> m_color_point[1] >> m_color_point[2] >> m_color_point[3];
+    file >> m_color_edge[0] >> m_color_edge[1] >> m_color_edge[2] >> m_color_edge[3];
+
+    //! HF
+    file >> m_scale >> m_resolution >> m_hf_dim >> m_output_dim;
+    file >> m_object_scale.x >> m_object_scale.y >> m_object_scale.z;
+
+    //! Noise
+    file >> m_hurst >> m_lacunarity >> m_base_scale >> m_offset[0] >> m_offset[1] >> m_seed;
+
+    file >> m_shading_dir.x >> m_shading_dir.y >> m_shading_dir.z;
+
+    int overlay;
+    file >> overlay;
+
+    m_overlay = (OVERLAY_TEX)overlay; 
+
+    file.close();
     return 0;
 }
 
@@ -328,6 +456,12 @@ int Viewer::handle_event()
 {
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
+        if (key_state(SDLK_F2))
+        {
+            clear_key_state(SDLK_F2);
+            save_params();
+            utils::info("Parameters saved !");
+        }
         if (key_state(SDLK_k))
         {
             clear_key_state(SDLK_k);
@@ -424,7 +558,7 @@ int Viewer::render_ui()
     const float window_width = ImGui::GetContentRegionAvail().x;
     const float window_height = ImGui::GetContentRegionAvail().y;
 
-    if (window_width > 0 && window_height > 0 && ((float)m_ww != window_width || (float)m_wh != window_height))
+    if (window_width > 0 && window_height > 0 && ((float)m_framebuffer_width != window_width || (float)m_framebuffer_height != window_height))
     {
         // we rescale the framebuffer to the actual window size here and reset the glViewport
         m_ImGUIFramebuffer.rescale(window_width, window_height);
@@ -497,6 +631,16 @@ int Viewer::render_ui()
             m_overlay = OVERLAY_TEX::SLOPE_TEX;
         }
         ImGui::SameLine();
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_avg_slope, ImVec2(128, 128), {0, 1}, {1, 0});
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Average Slope");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::AVG_SLOPE_TEX;
+        }
+        ImGui::SameLine();
         ImGui::Image((ImTextureID)(intptr_t)m_tex_shading, ImVec2(128, 128), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
@@ -505,6 +649,16 @@ int Viewer::render_ui()
         if (ImGui::IsItemClicked())
         {
             m_overlay = OVERLAY_TEX::SHADING_TEX;
+        }
+        ImGui::SameLine();
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_stream_area, ImVec2(128, 128), {0, 1}, {1, 0});
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("Stream area");
+        }
+        if (ImGui::IsItemClicked())
+        {
+            m_overlay = OVERLAY_TEX::STREAM_AREA_TEX;
         }
         ImGui::SameLine();
         if (ImGui::Button("Clear overlay", ImVec2(128, 128)))

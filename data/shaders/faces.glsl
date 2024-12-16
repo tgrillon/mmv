@@ -30,7 +30,7 @@ uniform vec3 u_Light;
 
 void main(void)
 {
-    vec4 color = vec4(1.0); 
+    vec4 color = vec4(0.8, 0.8, 0.8, 1.0); 
     vec4 ambient = vec4(0.2, 0.2, 0.2, 1.0);
     vec3 fNormal = normalize(vNormal);
     float cosTheta = max(0.0, dot(normalize(u_Light - vPosition), fNormal));

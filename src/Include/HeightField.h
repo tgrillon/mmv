@@ -4,85 +4,118 @@
 
 #include "Memory.h"
 
+using PixelType = unsigned char;
+using ScalarType = float;
+using IndexType = int;
+
 namespace mmv
 {
-    class Grid
+    
+    class Array2
     {
     public:
-        Grid() = default;
-        Grid(const std::vector<float> &elements, const vec2 &a, const vec2 &b, int nx, int nz);
-        ~Grid() = default;
+        Array2() = default;
+        explicit Array2(int dim);
+        Array2(int nx, int ny, ScalarType v=0.f);
+        Array2(const std::vector<ScalarType> &elements, int nx, int ny);
+        Array2(const vec2 &a, const vec2 &b, int nx, int ny, ScalarType v=0.f);
+        Array2(const std::vector<ScalarType> &elements, const vec2 &a, const vec2 &b, int nx, int ny);
+        ~Array2() = default;
 
         //! Get the elements with position (i [col], j [row]).
-        float &operator()(int i, int j);
+        ScalarType &operator()(IndexType i, IndexType j);
+        
+        ScalarType &operator()(IndexType i);
 
         //! Get the elements with position (i [col], j [row]).
-        float At(int i, int j) const;
+        ScalarType At(IndexType i, IndexType j) const;
+
+        ScalarType At(IndexType i) const;
+
+        //! Return the normalize value between 0 and 1
+        ScalarType Normalize(IndexType i, IndexType j) const;
+
+        ScalarType Clamp(IndexType i, IndexType j, ScalarType l, ScalarType h) const;
 
         //! Getters
         int Nx() const;
-        int Nz() const;
+        int Ny() const;
 
         vec2 A() const;
         vec2 B() const;
 
-        float Min() const;
-        float Max() const;
+        ScalarType Min() const;
+        ScalarType Max() const;
+
+        void UpdateMinMax();
 
         //! Compute the diagonal vector of a cell.
         vec2 Diagonal() const;
 
     protected:
-        std::vector<float> m_Elements{};
+        std::vector<ScalarType> m_Elements{};
 
         vec2 m_A{0.f, 0.f}, m_B{10.f, 10.f}; //! Boundaries
 
-        int m_Nx{10}, m_Nz{10}; //! Resolution on x & y
+        int m_Nx{10}, m_Ny{10}; //! Resolution on x & y
+
+    private: 
+        ScalarType m_Min, m_Max;
     };
 
-    class ScalarField : public Grid
+    class ScalarField : public Array2
     {
     public:
         ScalarField();
-        ScalarField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
+        explicit ScalarField(int dim);
+        ScalarField(int nx, int ny);
+        ScalarField(const std::vector<ScalarType> &elevations, int nx, int ny);
+        ScalarField(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny);
         ~ScalarField() = default;
 
-        static Ref<ScalarField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
+        static Ref<ScalarField> Create(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny);
 
         //! Modify elevation values 
-        void Elevations(const std::vector<float>& elevations, int nx = -1, int nz = -1);
+        void Elevations(const std::vector<ScalarType>& elevations, int nx = -1, int ny = -1);
 
         //! Get the 3D point from the scalar field.
-        Point Point3D(int i, int j) const;
+        Point Point3D(IndexType i, IndexType j) const;
         
         //! Get height of the point with position (i [col], j [row]).
-        float Height(int i, int j) const;
+        ScalarType Height(IndexType i, IndexType j) const;
 
         //! Get height of a point within the scalar field.
-        float Height(float x, float z) const; 
+        ScalarType Height(ScalarType x, ScalarType y) const; 
 
         //! Get height of a point within the scalar field.
-        float Height(const vec2& point) const; 
+        ScalarType Height(const vec2& point) const; 
 
         //! Compute gradient at a point with position (i [col], j [row]).
-        vec2 Gradient(int i, int j) const;
+        vec2 Gradient(IndexType i, IndexType j) const;
 
-        vec2 Gradient(float x, float z) const;
+        //! Compute gradient for a given point with 2D coordinates (x, y).
+        vec2 Gradient(ScalarType x, ScalarType y) const;
 
         //! Compute laplacian at a point with position (i [col], j [row]).
-        vec2 Laplacian(int i, int j) const;
+        ScalarType Laplacian(IndexType i, IndexType j) const;
 
-        vec2 Laplacian(float x, float z) const;
+        //! Compute laplacian for a given point with 2D coordinates (x, y).
+        ScalarType Laplacian(ScalarType x, ScalarType y) const;
 
         //! Save the elevations of a scalarfield as a grayscale image. 
-        int SaveHeightAsImage(const std::string& filename, int nx=-1, int nz=-1);
+        int ExportElevation(const std::string& filename, int nx=-1, int ny=-1);
 
-        int SaveGradientAsImage(const std::string& filename, int nx=-1, int nz=-1);
+        //! Save an image of the gradient values. 
+        int ExportGradient(const std::string& filename, int nx=-1, int ny=-1);
 
-        int SaveLaplacianAsImage(const std::string& filename, int nx=-1, int nz=-1);
+        //! Save an image of the laplacian values. 
+        int ExportLaplacian(const std::string& filename, int nx=-1, int ny=-1);
         
         //! Save the elevations of a scalarfield as a text file containing each point coordinates. 
-        int SaveHeightAsTxt(const std::string& filename, int nx=-1, int nz=-1);
+        int ExportElevationAsTxt(const std::string& filename, int nx=-1, int ny=-1);
+
+    protected:
+        int ExportGrayscaleImage(const std::string& filename, const int nx, const int ny, const Array2& values) const;
 
     protected:
         vec2 m_Diag{};
@@ -92,28 +125,56 @@ namespace mmv
     {
     public: 
         HeightField();
-        HeightField(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
+        explicit HeightField(int dim);
+        HeightField(int nx, int ny);
+        HeightField(const std::vector<ScalarType> &elevations, int nx, int ny);
+        HeightField(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny);
         ~HeightField()=default;
 
-        static Ref<HeightField> Create(const std::vector<float> &elevations, const vec2 &a, const vec2 &b, int nx, int nz);
+        //! Return a shared pointer on a new instance of HF. 
+        static Ref<HeightField> Create(const std::vector<ScalarType> &elevations, const vec2 &a, const vec2 &b, int nx, int ny);
 
+        //! Return a mesh of the HF. 
         Mesh Polygonize(int resolution) const; 
 
-        int SaveNormalAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
-
-        int SaveSlopeAsImage(const std::string &filename, int nx = -1, int nz = -1) const;
-        
-        int SaveShadingAsImage(const std::string &filename, const Vector& light_direction, int nx = -1, int nz = -1) const;
-
-    protected:
         //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
-        Vector Normal(int i, int j) const;
+        Vector Normal(IndexType i, IndexType j) const;
 
-        //! Compute the normal vector at point of coordinates (i [col], j [row]) in the grid. 
-        Vector Normal(float x, float z) const;
+        //! Compute the normal vector for a given point of coordinates (x, y) in 2D. 
+        Vector Normal(ScalarType x, ScalarType y) const;
 
         //! Compute the slope at point of coordinates (i [col], j [row]) in the grid. 
-        float Slope(int i, int j) const;
+        ScalarType Slope(IndexType i, IndexType j) const;
+
+        //! Compute the slope for a given point of coordinates (x, y) in 2D. 
+        ScalarType Slope(ScalarType x, ScalarType y) const;
+
+        //! Compute the average slope (8-connexity) for a given point (i [col], j [row]) in the grid.
+        ScalarType AverageSlope(IndexType i, IndexType j) const;
+
+        //! Compute the average slope (8-connexity) for a given point of coordinates (x, y) in 2D.
+        ScalarType AverageSlope(ScalarType x, ScalarType y) const;
+
+        //! Save an image of the normals. 
+        int ExportNormal(const std::string &filename, int nx = -1, int ny = -1) const;
+
+        //! Save an image of the slopes. 
+        int ExportSlope(const std::string &filename, int nx = -1, int ny = -1) const;
+
+        //! Save an image of the average slopes. 
+        int ExportAverageSlope(const std::string &filename, int nx = -1, int ny = -1) const;
+        
+        //! Save an image of the shading. 
+        int ExportShading(const std::string &filename, const Vector& light_direction, int nx = -1, int ny = -1) const;
+
+        //! Export the Height Field as an OBJ.
+        int ExportObj(const std::string& filename, int resolution);
+
+        void CompleteBreach();
+
+        int StreamArea(const std::string& filename) const;
+
+        int StreamPower() const;
 
     } typedef HF;
 } // namespace mmv

@@ -6,7 +6,6 @@
 #include "Framebuffer.h"
 #include "Timer.h"
 #include "HeightField.h"
-#include "PerlinNoise.h"
 
 class Viewer : public App
 {
@@ -35,6 +34,9 @@ private:
     int render_scalar_field_params();
     int render_scalar_field_stats();
 
+    int save_params();
+    int load_params();
+
     int handle_event();
 
     int render_menu_bar();
@@ -42,7 +44,10 @@ private:
 private:
     Mesh m_height_map;
 
+    //! Application params
     Framebuffer m_ImGUIFramebuffer;
+    
+    Timer m_timer;
 
     bool m_show_faces{true};
     bool m_show_edges{false};
@@ -60,9 +65,7 @@ private:
     bool m_dark_theme{true};
     bool m_show_skybox{true};
 
-    bool m_need_update{false};
-
-    Timer m_timer;
+    Point pmin, pmax;
 
     //! Demo boolean attributes
     bool m_activate_scalar_field_demo{true};
@@ -77,25 +80,21 @@ private:
 
     vec2 m_hf_a, m_hf_b;
 
-    Point pmin, pmax;
-
     int m_hf_dim{128};
     int m_output_dim{256};
 
-    int m_ww, m_wh; // window width/height
+    int m_framebuffer_width, m_framebuffer_height; // window width/height
 
     int m_resolution{128};
 
     //! Noise
-    int m_noctaves{4};
-    float m_amplitude{0.035f};
-    float m_frequency{0.05f};
-    int m_interpolation_func{1};
-
     float m_hurst{0.2f};
     float m_lacunarity{2.5f};
     float m_base_scale{0.005f};
+    int m_offset[2]{0, 0};
+    int m_seed{0};
 
+    //! VAO & VBO
     enum VAO_TYPE
     {
         OBJECT = 0,
@@ -116,9 +115,13 @@ private:
         NB_VBO
     };
 
-    Vector m_object_scale{1.f, 1.f, 1.f};
-
     GLuint m_buffers[VBO_TYPE::NB_VBO];
+
+    std::vector<float> m_positions;
+    std::vector<float> m_texcoords;
+    std::vector<float> m_normals;
+
+    Vector m_object_scale{1.f, 1.f, 1.f};
 
     //! Shaders
     GLuint m_program_texture{0};
@@ -134,9 +137,13 @@ private:
     GLuint m_tex_laplacian{0};
     GLuint m_tex_normal{0};
     GLuint m_tex_slope{0};
+    GLuint m_tex_avg_slope{0};
     GLuint m_tex_shading{0};
+    GLuint m_tex_stream_area{0};
 
     Vector m_shading_dir{-1.f, -1.f, -1.f};
+
+    std::string m_filename{""};
 
     enum OVERLAY_TEX
     {
@@ -146,13 +153,11 @@ private:
         LAPLACIAN_TEX,
         NORMAL_TEX, 
         SLOPE_TEX, 
+        AVG_SLOPE_TEX, 
         SHADING_TEX, 
+        STREAM_AREA_TEX, 
         NB_TEX
     };
 
     OVERLAY_TEX m_overlay{OVERLAY_TEX::NONE_TEX}; 
-
-    std::vector<float> m_positions;
-    std::vector<float> m_texcoords;
-    std::vector<float> m_normals;
 };

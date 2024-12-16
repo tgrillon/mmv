@@ -8,10 +8,10 @@ void GridConstructTest()
     vec2 A = {0.f, 0.f}, B = {10.f, 10.f};
     int nx = 2, ny = 2;
 
-    mmv::Grid grid(elements, A, B, nx, ny);
+    mmv::Array2 grid(elements, A, B, nx, ny);
     
     EXPECT_EQ(grid.Nx(), 2);
-    EXPECT_EQ(grid.Nz(), 2);
+    EXPECT_EQ(grid.Ny(), 2);
     EXPECT_EQ(grid.At(0, 0), 1.0f);
     EXPECT_EQ(grid.At(1, 1), 4.0f);
 } 

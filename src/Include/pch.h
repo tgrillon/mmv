@@ -16,6 +16,7 @@
 #include <string>
 #include <array>
 #include <set>
+#include <queue>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -48,7 +49,6 @@
 #include "Perlin.hpp"
 #include "Simplex.hpp"
 #include "Worley.hpp"
-
 
 //! SDL2
 #include <SDL2/SDL.h>

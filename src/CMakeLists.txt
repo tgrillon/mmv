@@ -9,9 +9,10 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${SOURCE_DIR}/Framebuffer.cpp
                                ${SOURCE_DIR}/Viewer.cpp
                                ${SOURCE_DIR}/HeightField.cpp
-                               ${SOURCE_DIR}/PerlinNoise.cpp
+                               ${SOURCE_DIR}/ZNoise.cpp
                                ${SOURCE_DIR}/Timer.cpp
                                ${SOURCE_DIR}/Buffer.cpp
+                               ${SOURCE_DIR}/Breaching.cpp
                                ${SOURCE_DIR}/gkitext.cpp
                                ${SOURCE_DIR}/vecext.cpp
                                ${SOURCE_DIR}/pch.cpp
@@ -23,9 +24,10 @@ add_executable(${PROJECT_NAME} main.cpp
                                ${INCLUDE_DIR}/Framebuffer.h
                                ${INCLUDE_DIR}/Viewer.h
                                ${INCLUDE_DIR}/HeightField.h
-                               ${INCLUDE_DIR}/PerlinNoise.h
+                               ${INCLUDE_DIR}/ZNoise.h
                                ${INCLUDE_DIR}/Timer.h
                                ${INCLUDE_DIR}/Buffer.h
+                               ${INCLUDE_DIR}/Breaching.h
                                ${INCLUDE_DIR}/gkitext.h
                                ${INCLUDE_DIR}/vecext.h
                                ${INCLUDE_DIR}/Utils.h
@@ -52,4 +54,5 @@ message(STATUS "Map directory set to: ${MAP_DIR}")
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC DATA_DIR="${DATA_DIR}"
                                            SHADER_DIR="${SHADER_DIR}"
+                                           CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
                                            )           

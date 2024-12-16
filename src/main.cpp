@@ -1,5 +1,4 @@
 #include "Viewer.h"
-#include "PerlinNoise.h"
 
 int main()
 {
