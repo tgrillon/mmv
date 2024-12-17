@@ -504,6 +504,48 @@ namespace mmv
         return 0;
     }
 
+    int HeightField::ExportGlobalShading(const std::string &filename, int ppp, int nx, int ny) const
+    {
+        nx = nx < 0 ? m_Nx : nx;
+        ny = ny < 0 ? m_Ny : ny;
+
+        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
+
+        std::random_device hwseed;
+        std::default_random_engine rng(hwseed());
+        std::uniform_real_distribution<scalar_t> uniform(0, 1);
+
+        Array2 shades(nx, ny);
+        for (int j = 0; j < ny; ++j)
+        {
+            scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
+            for (int i = 0; i < nx; ++i)
+            {
+                scalar_t cos_theta = 0.;
+                for (int k = 0; k < ppp; ++k)
+                {
+                    scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
+                    Vector normal = Normal(u, v);
+                    
+                    scalar_t u1 = uniform(rng);
+                    scalar_t u2 = uniform(rng);
+                    Vector l = sample34(u1, u2);
+
+                    cos_theta += std::max(0.f, dot(normalize(l), normal));
+                }
+
+                shades(i, j) = cos_theta / ppp;
+            }
+        }
+
+        shades.Gauss();
+        shades.UpdateMinMax();
+
+        ExportGrayscaleImage(filename, nx, ny, shades);
+
+        return 0;
+    }
+
     int HeightField::ExportObj(const std::string &filename, int resolution)
     {
         return write_mesh(Polygonize(resolution), filename.c_str());
@@ -527,7 +569,7 @@ namespace mmv
         {
             for (int i = 0; i < A.Nx(); ++i)
             {
-                A(i, j) = std::sqrt(A(i, j));
+                A(i, j) = std::log2f(A(i, j));
             }
         }
 
@@ -736,5 +778,21 @@ namespace mmv
         }
 
         return sum_slope / (scalar_t)count;
+    }
+
+    Vector sample34(const float u1, const float u2)
+    {
+        float cos_theta = u1;
+        float sin_theta = sqrt(1 - cos_theta * cos_theta);
+        float phi = float(2 * M_PI) * u2;
+        float sin_phi = sin(phi);
+        float cos_phi = cos(phi);
+
+        return {cos_phi * sin_theta, cos_theta, sin_theta * sin_phi};
+    }
+
+    float pdf34()
+    {
+        return 1.f / float(2 * M_PI);
     }
 } // namespace mmv

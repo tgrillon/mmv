@@ -139,6 +139,7 @@ private:
     GLuint m_tex_slope{0};
     GLuint m_tex_avg_slope{0};
     GLuint m_tex_shading{0};
+    GLuint m_tex_global_shading{0};
     GLuint m_tex_stream_area{0};
 
     Vector m_shading_dir{-1.f, -1.f, -1.f};
@@ -155,6 +156,7 @@ private:
         SLOPE_TEX, 
         AVG_SLOPE_TEX, 
         SHADING_TEX, 
+        GLOBAL_SHADING_TEX, 
         STREAM_AREA_TEX, 
         NB_TEX
     };

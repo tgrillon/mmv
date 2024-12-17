@@ -93,6 +93,8 @@ namespace mmv
         }
 
         void Smooth();
+        void Blur();
+        void Gauss();
 
         //! Getters
         inline int Nx() const { return m_Nx; }
@@ -133,11 +135,24 @@ namespace mmv
     template <typename T>
     inline void Array2<T>::Smooth()
     {
-        const float d = 1. / 16.;
-        const float kernel[9] = { d, 2. * d, d, 2. * d, 4. * d, 2. * d, d, 2. * d, d };
+        std::vector<scalar_t> output(m_Nx * m_Ny);
+        convolve(m_Elements, output, m_Nx, m_Ny, kernel::smooth, kernel::smooth_size);
+        m_Elements = output;
+    }
 
-        std::vector<scalar_t> output(m_Nx * m_Ny); 
-        convolve(m_Elements, output, m_Nx, m_Ny, kernel);
+    template <typename T>
+    inline void Array2<T>::Blur()
+    {
+        std::vector<scalar_t> output(m_Nx * m_Ny);
+        convolve(m_Elements, output, m_Nx, m_Ny, kernel::blur, kernel::blur_size);
+        m_Elements = output;
+    }
+
+    template <typename T>
+    inline void Array2<T>::Gauss()
+    {
+        std::vector<scalar_t> output(m_Nx * m_Ny);
+        convolve(m_Elements, output, m_Nx, m_Ny, kernel::gauss, kernel::gauss_size);
         m_Elements = output;
     }
 
@@ -245,6 +260,8 @@ namespace mmv
         //! Save an image of the shading.
         int ExportShading(const std::string &filename, const Vector &light_direction, int nx = -1, int ny = -1) const;
 
+        int ExportGlobalShading(const std::string &filename, int ppp = 10, int nx = -1, int ny = -1) const;
+
         //! Export the Height Field as an OBJ.
         int ExportObj(const std::string &filename, int resolution);
 
@@ -257,4 +274,9 @@ namespace mmv
         void StreamPower();
 
     } typedef HF;
+
+    //! Generate a random direction on an hemisphere
+    Vector sample34(const float u1, const float u2);
+
+    float pdf34();
 } // namespace mmv
