@@ -42,6 +42,9 @@ public:
     inline float& movement_speed() { return m_movement_speed; }
     inline float& fov() { return m_fov; }
 
+    inline float& znear() { return m_znear; }
+    inline float& zfar() { return m_zfar; }
+
 private:
     void update();
 
@@ -54,6 +57,8 @@ private:
     // euler Angles
     float m_yaw{YAW};
     float m_pitch{PITCH};
+
+    float m_znear{0.1f}, m_zfar{100.0f};
 
     float m_movement_speed{MOVEMENT_SPEED};
     float m_rotation_speed{ROTATION_SPEED};

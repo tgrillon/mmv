@@ -201,8 +201,8 @@ namespace mmv
         {
             for (int i = 0; i < nx; ++i)
             {
-                image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>((grads[j * nx + i].x - min.x) / (max.x - min.x) * 255.f);
-                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>((grads[j * nx + i].y - min.y) / (max.y - min.y) * 255.f);
+                image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>((grads[j * nx + i].x - min.x) * 255.f / (max.x - min.x));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>((grads[j * nx + i].y - min.y) * 255.f / (max.y - min.y));
                 image.pixels[(j * nx + i) * 3 + 2] = 0;
             }
         }
@@ -408,8 +408,8 @@ namespace mmv
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 vec3 normal = Normal(u, v);
                 image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.x + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 2] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
             }
         }
 

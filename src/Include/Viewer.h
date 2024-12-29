@@ -28,7 +28,7 @@ private:
     int render_demo_buttons();
     int render_any();
 
-    int update_height_field();
+    int update_height_field(bool export_elevation=true);
 
     int render_demo_scalar_field();
     int render_scalar_field_params();

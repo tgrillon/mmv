@@ -304,9 +304,12 @@ int Viewer::render_any()
     return 0;
 }
 
-int Viewer::update_height_field()
+int Viewer::update_height_field(bool export_elevation)
 {
     m_height_map = m_hf->Polygonize(m_resolution);
+
+    if (export_elevation)
+        m_hf->ExportElevation("elevation.png", m_output_dim, m_output_dim);
     m_hf->ExportGradient("gradient.png", m_output_dim, m_output_dim);
     m_hf->ExportLaplacian("laplacian.png", m_output_dim, m_output_dim);
     m_hf->ExportNormal("normal.png", m_output_dim, m_output_dim);
@@ -351,15 +354,9 @@ int Viewer::render_scalar_field_params()
             m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
 
             m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
-            update_height_field();
+            update_height_field(false);
         }
-        if (ImGui::SliderInt2("Offset XY", &m_offset[0], 0, 2048))
-        {
-            m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
-
-            m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
-            update_height_field();
-        }
+        ImGui::SliderInt2("Offset XY", &m_offset[0], -2048, 2048);
         ImGui::SliderFloat("Base Scale", &m_base_scale, 0.001f, 1.f);
     }
 
@@ -390,7 +387,7 @@ int Viewer::render_scalar_field_params()
         m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
 
         m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
-        update_height_field();
+        update_height_field(false);
     }
 
     if (ImGui::Button("Center camera"))
@@ -748,6 +745,7 @@ int Viewer::render_ui()
             ImGui::SliderFloat("FOV", &m_cs.fov(), 35.0f, 120.0f);
             if (m_cs.is_freefly())
             {
+                ImGui::SliderFloat("ZFar", &m_cs.freefly().zfar(), 100.0f, 1000.0f);
                 ImGui::SliderFloat("Movement speed", &m_cs.freefly().movement_speed(), 1.0f, 50.0f);
                 ImGui::SliderFloat("Rotation speed", &m_cs.freefly().rotation_speed(), 0.1f, 1.0f);
                 ImGui::InputFloat3("Position", &m_cs.freefly().position().x);

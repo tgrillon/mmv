@@ -12,7 +12,7 @@ Transform Camera::view()
 
 Transform Camera::projection()
 {
-    return Perspective(m_fov, m_window_width / m_window_height, 0.1f, 100.0f);
+    return Perspective(m_fov, m_window_width / m_window_height, m_znear, m_zfar);
 }
 
 Transform Camera::projection(float width, float height, float fov)
