@@ -10,6 +10,7 @@ void convolve(const std::vector<scalar_t> &input, std::vector<scalar_t> &output,
     {
         for (int i = 0; i < nx; ++i)
         {
+            int count = 0;
             for (int k = 0; k < N; ++k)
             {
                 const int pi = i + dx[k];
@@ -18,9 +19,14 @@ void convolve(const std::vector<scalar_t> &input, std::vector<scalar_t> &output,
                 if (pi < 0 || pi >= nx || pj < 0 || pj >= ny)
                     continue;
 
-                output[j * nx + i] += kernel[(1 + dy[k]) * nk + (1 + dx[k])] * input[pj * nx + pi];
+                const int qi = 1 + dx[k];
+                const int qj = 1 + dy[k];
+                output[j * nx + i] += kernel[qj * nk + qi] * input[pj * nx + pi];
+                count++;
             }
-            output[j * nx + i] += kernel[nk + nk / 2] * input[j * nx + i];
+
+            if (count > 0)
+                output[j * nx + i] += kernel[nk + nk / 2] * input[j * nx + i];
         }
     }
 }

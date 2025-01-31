@@ -1,5 +1,6 @@
 #include "HeightField.h"
 
+#include "gkitext.h"
 #include "vecext.h"
 #include "Utils.h"
 
@@ -188,6 +189,16 @@ namespace mmv
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 vec2 grad = Gradient(u, v);
+                if (grad.x < 0.f)
+                    grad.x = -std::sqrt(-grad.x);
+                else 
+                    grad.x = std::sqrt(grad.x);
+                
+                if (grad.y < 0.f)
+                    grad.y = -std::sqrt(-grad.y);
+                else
+                    grad.y = std::sqrt(grad.y);
+
                 grads.emplace_back(grad.x, grad.y);
                 min.x = std::min(min.x, grad.x);
                 min.y = std::min(min.y, grad.y);
@@ -222,8 +233,6 @@ namespace mmv
         nx = nx < 0 ? m_Nx : nx;
         ny = ny < 0 ? m_Ny : ny;
 
-        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
-
         Array2 laplacians(nx, ny);
         for (int j = 0; j < ny; ++j)
         {
@@ -231,7 +240,13 @@ namespace mmv
             for (int i = 0; i < nx; ++i)
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
-                laplacians(i, j) = Laplacian(u, v);
+
+                scalar_t laplacian = Laplacian(u, v);
+                if (laplacian < 0.f)
+                    laplacian = -std::sqrt(-laplacian);
+                else
+                    laplacian = std::sqrt(laplacian);
+                laplacians(i, j) = laplacian;
             }
         }
 
@@ -408,8 +423,8 @@ namespace mmv
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 vec3 normal = Normal(u, v);
                 image.pixels[(j * nx + i) * 3 + 0] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.x + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
-                image.pixels[(j * nx + i) * 3 + 2] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 1] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.z + 0.5f) * 0.5f * 255.f)));
+                image.pixels[(j * nx + i) * 3 + 2] = static_cast<pixel_t>(std::max(0.f, std::min(255.f, (normal.y + 0.5f) * 0.5f * 255.f)));
             }
         }
 
@@ -436,7 +451,7 @@ namespace mmv
             for (int i = 0; i < nx; ++i)
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
-                slope(i, j) = Slope(u, v);
+                slope(i, j) = std::log2f(Slope(u, v));
             }
         }
 
@@ -453,14 +468,13 @@ namespace mmv
         ny = ny < 0 ? m_Ny : ny;
 
         Array2 avgslope(nx, ny);
-
         for (int j = 0; j < ny; ++j)
         {
             scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
             for (int i = 0; i < nx; ++i)
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
-                avgslope(i, j) = AverageSlope(u, v);
+                avgslope(i, j) = std::log2f(AverageSlope(u, v));
             }
         }
 
@@ -579,9 +593,10 @@ namespace mmv
         {
             for (int i = 0; i < m_Nx; ++i)
             {
-                image.pixels[(j * m_Nx + i) * 3 + 0] = 0;
-                image.pixels[(j * m_Nx + i) * 3 + 1] = 0;
-                image.pixels[(j * m_Nx + i) * 3 + 2] = static_cast<pixel_t>(A.Normalize(i, j) * 255.f);
+                pixel_t value = static_cast<pixel_t>(A.Normalize(i, j) * 128.f); 
+                image.pixels[(j * m_Nx + i) * 3 + 0] = std::min(99 + value, 255);
+                image.pixels[(j * m_Nx + i) * 3 + 1] = std::min(132 + value, 255);
+                image.pixels[(j * m_Nx + i) * 3 + 2] = std::min(235 + value, 255);
             }
         }
 
@@ -778,6 +793,20 @@ namespace mmv
         }
 
         return sum_slope / (scalar_t)count;
+    }
+
+    std::vector<scalar_t> load_elevation(const std::string &map)
+    {
+        const std::string FULLPATH = std::string(DATA_DIR) + "/input/" + map;
+
+        ImageData image = read_image_data(FULLPATH.c_str());
+
+        std::vector<scalar_t> elevation(image.width * image.height);
+
+        for (size_t i = 0; i < image.width * image.height; ++i)
+            elevation[i] = image.pixels[i * 3];
+
+        return elevation;
     }
 
     Vector sample34(const float u1, const float u2)

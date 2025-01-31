@@ -214,6 +214,8 @@ namespace mmv
         vec2 m_Diag{};
     } typedef SF;
 
+    std::vector<scalar_t> load_elevation(const std::string& map);
+
     class HeightField : public ScalarField
     {
     public:

@@ -77,16 +77,6 @@ int Viewer::init_shaders()
 int Viewer::init_demo_scalar_field()
 {
     //! Generate height map using Perlin noise
-
-    // m_elevations.resize(m_hf_dim * m_hf_dim);
-    // for (int j = 0; j < m_hf_dim; ++j)
-    // {
-    //     for (int i = 0; i < m_hf_dim; ++i)
-    //     {
-    //         m_elevations[j * m_hf_dim + i] = std::cos(i / 4.f) * std::sin(j / 4.f) * 20.f;
-    //     }
-    // }
-
     m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_seed);
     m_hf_a = {0.f, 0.f};
     m_hf_b = {(float)m_hf_dim, (float)m_hf_dim};
@@ -103,7 +93,6 @@ int Viewer::init_demo_scalar_field()
     m_hf->ExportSlope("slope.png", m_output_dim, m_output_dim);
     m_hf->ExportAverageSlope("avgslope.png", m_output_dim, m_output_dim);
     m_hf->ExportShading("shading.png", m_shading_dir, m_output_dim, m_output_dim);
-    // m_hf->ExportGlobalShading("globalshading.png", 128, m_output_dim, m_output_dim);
     // m_hf->ExportStreamArea("streamarea.png");
 
     m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
@@ -114,7 +103,6 @@ int Viewer::init_demo_scalar_field()
     m_tex_avg_slope = read_texture(0, std::string(DATA_DIR) + "/output/avgslope.png");
     m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
     m_tex_stream_area = read_texture(0, std::string(DATA_DIR) + "/output/streamarea.png");
-    m_tex_global_shading = read_texture(0, std::string(DATA_DIR) + "/output/globalshading.png");
 
     save_params();
 
@@ -166,7 +154,6 @@ int Viewer::quit_any()
     glDeleteTextures(1, &m_tex_slope);
     glDeleteTextures(1, &m_tex_avg_slope);
     glDeleteTextures(1, &m_tex_shading);
-    glDeleteTextures(1, &m_tex_global_shading);
     glDeleteTextures(1, &m_tex_stream_area);
 
     glDeleteVertexArrays(VAO_TYPE::NB_VAO, m_vao);
@@ -235,9 +222,6 @@ int Viewer::render_any()
                 break;
             case OVERLAY_TEX::SHADING_TEX:
                 program_use_texture(m_program_texture, "u_Texture", 0, m_tex_shading);
-                break;
-            case OVERLAY_TEX::GLOBAL_SHADING_TEX:
-                program_use_texture(m_program_texture, "u_Texture", 0, m_tex_global_shading);
                 break;
             case OVERLAY_TEX::STREAM_AREA_TEX:
                 program_use_texture(m_program_texture, "u_Texture", 0, m_tex_stream_area);
@@ -308,15 +292,13 @@ int Viewer::update_height_field(bool export_elevation)
 {
     m_height_map = m_hf->Polygonize(m_resolution);
 
-    if (export_elevation)
-        m_hf->ExportElevation("elevation.png", m_output_dim, m_output_dim);
+    m_hf->ExportElevation("elevation.png", m_output_dim, m_output_dim);
     m_hf->ExportGradient("gradient.png", m_output_dim, m_output_dim);
     m_hf->ExportLaplacian("laplacian.png", m_output_dim, m_output_dim);
     m_hf->ExportNormal("normal.png", m_output_dim, m_output_dim);
     m_hf->ExportSlope("slope.png", m_output_dim, m_output_dim);
     m_hf->ExportAverageSlope("avgslope.png", m_output_dim, m_output_dim);
     m_hf->ExportShading("shading.png", m_shading_dir, m_output_dim, m_output_dim);
-    // m_hf->ExportGlobalShading("globalshading.png", 128, m_output_dim, m_output_dim);
     m_hf->ExportStreamArea("streamarea.png");
 
     m_tex_elevation = read_texture(0, std::string(DATA_DIR) + "/output/elevation.png");
@@ -326,7 +308,6 @@ int Viewer::update_height_field(bool export_elevation)
     m_tex_slope = read_texture(0, std::string(DATA_DIR) + "/output/slope.png");
     m_tex_avg_slope = read_texture(0, std::string(DATA_DIR) + "/output/avgslope.png");
     m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
-    m_tex_global_shading = read_texture(0, std::string(DATA_DIR) + "/output/globalshading.png");
     m_tex_stream_area = read_texture(0, std::string(DATA_DIR) + "/output/streamarea.png");
 
     return 0;
@@ -334,23 +315,21 @@ int Viewer::update_height_field(bool export_elevation)
 
 int Viewer::render_scalar_field_params()
 {
-    ImGui::SliderFloat("Scale", &m_scale, 1.f, 128.f);
-    ImGui::SliderInt("Scalar Field Dim", &m_hf_dim, 16.f, 1024.f);
-    ImGui::SliderInt("Output Dim", &m_output_dim, 16.f, 1024.f);
+    ImGui::SliderFloat("Scale", &m_scale, 1.f, 258.f);
+    if (ImGui::SliderInt("Scalar Field Dim", &m_hf_dim, 16.f, 2048.f))
+    {
+        m_output_dim = m_hf_dim;
+        m_resolution = m_hf_dim;
+    }
+    ImGui::SliderInt("Output Dim", &m_output_dim, 16.f, 2048.f);
     ImGui::SliderInt("Resolution", &m_resolution, m_hf_dim / 4, m_hf_dim * 8);
+    ImGui::SliderInt("Map dim", &m_map_dim, 16, 2048);
     if (ImGui::CollapsingHeader("Perlin Noise"))
     {
         ImGui::SliderFloat("Hurst", &m_hurst, 0.01f, 5.0f);
         ImGui::SliderFloat("Lacunarity", &m_lacunarity, 1.f, 15.f);
         if (ImGui::InputInt("Seed", &m_seed))
         {
-            // for (int j = 0; j < m_hf_dim; ++j)
-            // {
-            //     for (int i = 0; i < m_hf_dim; ++i)
-            //     {
-            //         m_elevations[j * m_hf_dim + i] = std::cos((float)i / 8.f) * m_scale;
-            //     }
-            // }
             m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
 
             m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
@@ -385,6 +364,7 @@ int Viewer::render_scalar_field_params()
     if (ImGui::Button("Generate"))
     {
         m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
+        // m_elevations = mmv::load_elevation("montblanc.png");
 
         m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
         update_height_field(false);
@@ -613,7 +593,7 @@ int Viewer::render_ui()
     if (m_show_ui)
     {
         ImGui::Begin("Map");
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_elevation, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_elevation, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Elevation");
@@ -626,7 +606,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::ELEVATION_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_gradient, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_gradient, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Gradient");
@@ -639,7 +619,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::GRADIENT_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_laplacian, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_laplacian, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Laplacian");
@@ -652,7 +632,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::LAPLACIAN_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_normal, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_normal, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Normal");
@@ -665,7 +645,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::NORMAL_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_slope, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_slope, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Slope");
@@ -678,7 +658,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::SLOPE_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_avg_slope, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_avg_slope, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Average Slope");
@@ -691,7 +671,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::AVG_SLOPE_TEX;
         }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_shading, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_shading, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Shading");
@@ -703,20 +683,8 @@ int Viewer::render_ui()
             else
                 m_overlay = OVERLAY_TEX::SHADING_TEX;
         }
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_global_shading, ImVec2(128, 128), {0, 1}, {1, 0});
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
-        {
-            ImGui::SetTooltip("Global Shading");
-        }
-        if (ImGui::IsItemClicked())
-        {
-            if (m_overlay == OVERLAY_TEX::GLOBAL_SHADING_TEX)
-                m_overlay = OVERLAY_TEX::NONE_TEX;
-            else
-                m_overlay = OVERLAY_TEX::GLOBAL_SHADING_TEX;
-        }
         ImGui::SameLine();
-        ImGui::Image((ImTextureID)(intptr_t)m_tex_stream_area, ImVec2(128, 128), {0, 1}, {1, 0});
+        ImGui::Image((ImTextureID)(intptr_t)m_tex_stream_area, ImVec2(m_map_dim, m_map_dim), {0, 1}, {1, 0});
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
             ImGui::SetTooltip("Stream area");
@@ -729,7 +697,7 @@ int Viewer::render_ui()
                 m_overlay = OVERLAY_TEX::STREAM_AREA_TEX;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Clear overlay", ImVec2(128, 128)))
+        if (ImGui::Button("Clear overlay", ImVec2(m_map_dim, m_map_dim)))
         {
             m_overlay = OVERLAY_TEX::NONE_TEX;
         }
@@ -746,7 +714,7 @@ int Viewer::render_ui()
             if (m_cs.is_freefly())
             {
                 ImGui::SliderFloat("ZFar", &m_cs.freefly().zfar(), 100.0f, 1000.0f);
-                ImGui::SliderFloat("Movement speed", &m_cs.freefly().movement_speed(), 1.0f, 50.0f);
+                ImGui::SliderFloat("Movement speed", &m_cs.freefly().movement_speed(), 1.0f, 250.0f);
                 ImGui::SliderFloat("Rotation speed", &m_cs.freefly().rotation_speed(), 0.1f, 1.0f);
                 ImGui::InputFloat3("Position", &m_cs.freefly().position().x);
             }
@@ -788,6 +756,11 @@ int Viewer::render_ui()
         ImGui::SeparatorText("Geometry");
         ImGui::Text("#Triangle : %i ", ((m_resolution - 1) * 2) * ((m_resolution - 1) * 2));
         ImGui::Text("#Vertex : %i ", m_height_map.vertex_count());
+        ImGui::SeparatorText("Height Field");
+        ImGui::Text("Map Width : %i ", m_hf->Nx());
+        ImGui::Text("Map Height : %i ", m_hf->Ny());
+        ImGui::Text("Max Elevation : %.2f ", m_hf->Max());
+        ImGui::Text("Min Elevation : %.2f ", m_hf->Min());
         ImGui::End();
     }
 
