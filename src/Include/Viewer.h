@@ -41,6 +41,8 @@ private:
 
     int render_menu_bar();
 
+    int screenshot();
+
 private:
     Mesh m_height_map;
 

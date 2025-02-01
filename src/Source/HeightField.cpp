@@ -298,6 +298,8 @@ namespace mmv
 
     int ScalarField::ExportGrayscaleImage(const std::string &filename, const int nx, const int ny, const Array2 &values) const
     {
+        utils::info(filename, " min: ", values.Min(), " max: ", values.Max());
+
         ImageData image(nx, ny, 3);
 
         for (int j = 0; j < ny; ++j)
@@ -451,7 +453,7 @@ namespace mmv
             for (int i = 0; i < nx; ++i)
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
-                slope(i, j) = std::log2f(Slope(u, v));
+                slope(i, j) = std::sqrt(Slope(u, v));
             }
         }
 
@@ -474,7 +476,7 @@ namespace mmv
             for (int i = 0; i < nx; ++i)
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
-                avgslope(i, j) = std::log2f(AverageSlope(u, v));
+                avgslope(i, j) = std::sqrt(AverageSlope(u, v));
             }
         }
 
@@ -490,10 +492,7 @@ namespace mmv
         nx = nx < 0 ? m_Nx : nx;
         ny = ny < 0 ? m_Ny : ny;
 
-        std::string fullpath = std::string(DATA_DIR) + "/output/" + filename;
-
-        ImageData image(nx, ny, 3);
-
+        Array2 shades(nx, ny);
         for (int j = 0; j < ny; ++j)
         {
             scalar_t v = (scalar_t)j / (scalar_t)ny * (scalar_t)m_Ny;
@@ -501,20 +500,14 @@ namespace mmv
             {
                 scalar_t u = (scalar_t)i / (scalar_t)nx * (scalar_t)m_Nx;
                 Vector normal = Normal(u, v);
-                scalar_t cos_theta = std::max(0.f, dot(normalize(-light_direction), normal));
-                pixel_t value = static_cast<pixel_t>(cos_theta * 255.f);
-                image.pixels[(j * nx + i) * 3 + 0] = value;
-                image.pixels[(j * nx + i) * 3 + 1] = value;
-                image.pixels[(j * nx + i) * 3 + 2] = value;
+                shades(i, j) = std::max(0.f, dot(normalize(-light_direction), normal));
             }
         }
 
-        if (write_image_data(image, fullpath.c_str()) < 0)
-            return -1;
+        shades.UpdateMinMax();
 
-#ifndef NDEBUG
-        utils::status("[Shading] Image ", filename, " successfully saved in ./data/output");
-#endif
+        ExportGrayscaleImage(filename, nx, ny, shades);
+
         return 0;
     }
 
@@ -583,7 +576,7 @@ namespace mmv
         {
             for (int i = 0; i < A.Nx(); ++i)
             {
-                A(i, j) = std::log2f(A(i, j));
+                A(i, j) = std::sqrt(A(i, j));
             }
         }
 
@@ -639,6 +632,9 @@ namespace mmv
                     A(I + u, J + v) += A(I, J) / d;
             }
         }
+
+        A.UpdateMinMax();
+        utils::info("Stream Area min: ", A.Min(), " max: ", A.Max());
 
         return A;
     }

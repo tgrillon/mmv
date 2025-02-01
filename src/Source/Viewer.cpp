@@ -460,6 +460,13 @@ int Viewer::load_params()
 
 int Viewer::handle_event()
 {
+    // if (key_state(SDLK_F1))
+    // {
+    //     clear_key_state(SDLK_F1);
+    //     screenshot();
+    //     utils::info("Screenshot saved !");
+    // }
+
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
         if (key_state(SDLK_F2))
@@ -837,4 +844,29 @@ int Viewer::render_menu_bar()
     // ImGui::ShowDemoWindow();
 
     return 0;
+}
+
+int Viewer::screenshot()
+{
+    std::random_device rd;
+    std::default_random_engine generator(rd());
+    std::uniform_int_distribution<int> distribution(0, 1000);
+
+    std::string filename = std::string(DATA_DIR) + "/screenshots/screenshot_" + std::to_string(distribution(generator)) + ".png";
+
+    m_ImGUIFramebuffer.bind();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+
+    ImageData image(m_framebuffer_width, m_framebuffer_height, 4);
+    glReadBuffer(GL_FRONT);
+
+    // transfere les pixels
+    glReadPixels(0, 0, m_framebuffer_width, m_framebuffer_height,
+                 GL_RGBA, GL_UNSIGNED_BYTE, image.data());
+
+    m_ImGUIFramebuffer.unbind();
+    return write_image_data(image, filename.c_str());
 }
