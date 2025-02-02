@@ -14,5 +14,4 @@ CMakeUserPresets.json
 
 .vscode/
 build/
-data/output
 **/*.obj
