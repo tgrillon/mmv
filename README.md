@@ -129,5 +129,8 @@ git clone https://github.com/tgrillon/mmv.git
 
 L'application utilise ImGui qui permet d'avoir une interface modulable avec des fenêtres dockables : 
 
+![Dockable](./data/readme/dockable.gif)
+
 ### Fonctionnalités globales
 
+![Application](./data/readme/app.png)

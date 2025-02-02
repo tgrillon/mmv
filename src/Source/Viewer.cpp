@@ -774,8 +774,6 @@ int Viewer::render_ui()
 
         ImGui::Begin("Control Panel");
 
-        render_demo_buttons();
-
         ImGui::Checkbox("Show Skybox", &m_show_skybox);
         if (ImGui::CollapsingHeader("Camera"))
         {
@@ -846,40 +844,6 @@ int Viewer::render_ui()
     }
 
     ImGui::Render();
-
-    return 0;
-}
-
-int Viewer::render_demo_buttons()
-{
-    ImVec2 sz = ImVec2(-FLT_MIN, 45.0f);
-
-    if (ImGui::CollapsingHeader("Menu"))
-    {
-        //! Scalar field demo widget
-        ImGui::BeginDisabled(m_activate_scalar_field_demo);
-        if (ImGui::Button("Scalar Field demo", sz) && !m_activate_scalar_field_demo)
-        {
-            m_activate_height_map_demo = false;
-        }
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
-        {
-            ImGui::SetTooltip(!m_activate_scalar_field_demo ? "Activate scalar field demo." : "Scalar field demo is active.");
-        }
-        ImGui::EndDisabled();
-
-        //! Height map demo widget
-        ImGui::BeginDisabled(m_activate_height_map_demo);
-        if (ImGui::Button("Height map Demo", sz) && !m_activate_height_map_demo)
-        {
-            m_activate_scalar_field_demo = false;
-        }
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
-        {
-            ImGui::SetTooltip(!m_activate_height_map_demo ? "Activate height map demo." : "Height map demo is active.");
-        }
-        ImGui::EndDisabled();
-    }
 
     return 0;
 }
