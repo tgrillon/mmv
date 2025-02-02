@@ -313,6 +313,53 @@ int Viewer::update_height_field(bool export_elevation)
     return 0;
 }
 
+int Viewer::erode()
+{
+    Timer timer;
+    timer.start();
+
+    {
+        Timer timer;
+        timer.start();
+        m_hf->StreamPower();
+        timer.stop();
+        m_streampower_ms += timer.ms();
+        m_streampower_us += timer.us();
+    }
+
+    {
+        Timer timer;
+        timer.start();
+        m_hf->CompleteBreach();
+        timer.stop();
+        m_breaching_us += timer.us();
+        m_breaching_ms += timer.ms();
+    }
+
+    timer.stop();
+    m_erode_us += timer.us();
+    m_erode_ms += timer.ms();
+
+    update_height_field();
+
+    return 0;
+}
+
+int Viewer::smooth()
+{
+    Timer timer;
+    timer.start();
+    m_hf->Smooth();
+    timer.stop();
+
+    m_smooth_ms += timer.ms();
+    m_smooth_us += timer.us();
+
+    update_height_field();
+
+    return 0;
+}
+
 int Viewer::render_scalar_field_params()
 {
     ImGui::SliderFloat("Scale", &m_scale, 1.f, 258.f);
@@ -347,18 +394,29 @@ int Viewer::render_scalar_field_params()
     }
 
     if (ImGui::Button("Erode"))
-    {
-        m_hf->StreamPower();
-        m_hf->CompleteBreach();
+        erode();
 
-        update_height_field();
+    ImGui::PushID(1);
+    ImGui::SameLine();
+    if (ImGui::Button("Reset"))
+    {
+        m_streampower_ms = 0.f;
+        m_streampower_us = 0.f;
+        m_breaching_ms = 0.f;
+        m_breaching_us = 0.f;
+        m_erode_ms = 0.f;
+        m_erode_us = 0.f;
     }
+    ImGui::PopID();
 
     if (ImGui::Button("Smooth"))
-    {
-        m_hf->Smooth();
+        smooth();
 
-        update_height_field();
+    ImGui::SameLine();
+    if (ImGui::Button("Reset"))
+    {
+        m_smooth_ms = 0.f;
+        m_smooth_us = 0.f;
     }
 
     if (ImGui::Button("Generate"))
@@ -460,13 +518,6 @@ int Viewer::load_params()
 
 int Viewer::handle_event()
 {
-    // if (key_state(SDLK_F1))
-    // {
-    //     clear_key_state(SDLK_F1);
-    //     screenshot();
-    //     utils::info("Screenshot saved !");
-    // }
-
     if (!io.WantCaptureKeyboard && !io.WantCaptureMouse)
     {
         if (key_state(SDLK_F2))
@@ -499,6 +550,17 @@ int Viewer::handle_event()
         {
             clear_key_state(SDLK_v);
             m_show_points = !m_show_points;
+        }
+
+        if (key_state(SDLK_b))
+        {
+            clear_key_state(SDLK_b);
+            erode();
+        }
+        if (key_state(SDLK_n))
+        {
+            clear_key_state(SDLK_n);
+            smooth();
         }
 
         float dt = delta_time() / 1000.f;
@@ -768,6 +830,11 @@ int Viewer::render_ui()
         ImGui::Text("Map Height : %i ", m_hf->Ny());
         ImGui::Text("Max Elevation : %.2f ", m_hf->Max());
         ImGui::Text("Min Elevation : %.2f ", m_hf->Min());
+        ImGui::SeparatorText("Timers");
+        ImGui::Text("Stream Power : %i ms %i us", m_streampower_ms, m_streampower_us);
+        ImGui::Text("Breaching : %i ms %i us", m_breaching_ms, m_breaching_us);
+        ImGui::Text("Erode (SP + Breaching) : %i ms %i us", m_erode_ms, m_erode_us);
+        ImGui::Text("Smooth : %i ms %i us", m_smooth_ms, m_smooth_us);
         ImGui::End();
     }
 

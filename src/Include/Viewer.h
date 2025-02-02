@@ -29,6 +29,8 @@ private:
     int render_any();
 
     int update_height_field(bool export_elevation=true);
+    int erode();
+    int smooth();
 
     int render_demo_scalar_field();
     int render_scalar_field_params();
@@ -50,6 +52,17 @@ private:
     Framebuffer m_ImGUIFramebuffer;
     
     Timer m_timer;
+
+    int m_erode_ms{0};
+    int m_streampower_ms{0};
+    int m_breaching_ms{0};
+    int m_smooth_ms{0};
+
+    int m_erode_us{0};
+    int m_streampower_us{0};
+    int m_breaching_us{0};
+    int m_smooth_us{0};
+
 
     bool m_show_faces{true};
     bool m_show_edges{false};
