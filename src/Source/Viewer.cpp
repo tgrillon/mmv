@@ -292,7 +292,8 @@ int Viewer::update_height_field(bool export_elevation)
 {
     m_height_map = m_hf->Polygonize(m_resolution);
 
-    m_hf->ExportElevation("elevation.png", m_output_dim, m_output_dim);
+    if (export_elevation)
+        m_hf->ExportElevation("elevation.png", m_output_dim, m_output_dim);
     m_hf->ExportGradient("gradient.png", m_output_dim, m_output_dim);
     m_hf->ExportLaplacian("laplacian.png", m_output_dim, m_output_dim);
     m_hf->ExportNormal("normal.png", m_output_dim, m_output_dim);
@@ -393,7 +394,7 @@ int Viewer::render_scalar_field_params()
         m_tex_shading = read_texture(0, std::string(DATA_DIR) + "/output/shading.png");
     }
 
-    if (ImGui::Button("Erode"))
+    if (ImGui::Button("Erode (b)"))
         erode();
 
     ImGui::PushID(1);
@@ -409,7 +410,7 @@ int Viewer::render_scalar_field_params()
     }
     ImGui::PopID();
 
-    if (ImGui::Button("Smooth"))
+    if (ImGui::Button("Smooth (n)"))
         smooth();
 
     ImGui::SameLine();
@@ -419,7 +420,7 @@ int Viewer::render_scalar_field_params()
         m_smooth_us = 0.f;
     }
 
-    if (ImGui::Button("Generate"))
+    if (ImGui::Button("Generate (g)"))
     {
         m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
         // m_elevations = mmv::load_elevation("montblanc.png");
@@ -561,6 +562,14 @@ int Viewer::handle_event()
         {
             clear_key_state(SDLK_n);
             smooth();
+        }
+        if (key_state(SDLK_g))
+        {
+            clear_key_state(SDLK_g);
+            m_elevations = znoise::generate_hmf("elevation.png", m_scale, m_hf_dim, m_hf_dim, m_hurst, m_lacunarity, m_base_scale, m_offset[0], m_offset[1], m_seed);
+
+            m_hf->Elevations(m_elevations, m_hf_dim, m_hf_dim);
+            update_height_field(false);
         }
 
         float dt = delta_time() / 1000.f;
@@ -774,7 +783,7 @@ int Viewer::render_ui()
 
         ImGui::Begin("Control Panel");
 
-        ImGui::Checkbox("Show Skybox", &m_show_skybox);
+        ImGui::Checkbox("Show Skybox (k)", &m_show_skybox);
         if (ImGui::CollapsingHeader("Camera"))
         {
             ImGui::SliderFloat("FOV", &m_cs.fov(), 35.0f, 120.0f);
